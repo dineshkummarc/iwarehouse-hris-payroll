@@ -6,14 +6,15 @@ An HRIS provides a centralized database that stores applicant tracking functions
 The “Payroll Management System” is designed to automate the existing manual system using computerized equipment and cutting-edge computer software, meeting client’s needs so that their valuable data and information can be stored for a longer period with easy access and manipulation. The necessary software is readily available and simple to use. This software allows users to keep track of and see computerized records without having to make duplicate entries. The project explains how to handle user data for optimal efficiency and better customer service.
 This system is a web-based program that can be used by any firm to manage the records of its employees. This was created with the goal of keeping track of numerous employees, their allowances, and deductions that must be given to the company’s employees. There will be an entry (a unique ID) for every employee of any company. The number of days will be submitted based on the date of joining and the date on which the salary is produced. Basic compensation will be determined by the employee’s position and department.
 
-	Advantages 
-	Easy access to the data
-	The new system is more user-friendly, reliable and flexible. 
-	Data alteration is easy. 
-	Maintenance of the project is easy. 
-	Reduced manual work. 
-	Timely Report generation. 
-The main objective of this system is to reduce the effort of office to keep the daily events such as payroll, employee performance, employee attendance and employees’ details.
+***Advantages**
+	* Easy access to the data
+	* The new system is more user-friendly, reliable and flexible. 
+	* Data alteration is easy with system records. 
+	* Maintenance of the project is easy. 
+	* Reduced manual work. 
+	* Timely Report generation. 
+
+The main objective of this system is to reduce the effort of office to keep the daily events such as payroll, employee performance, employee attendance and employee's details.
  
 Here are some features of the system
 
@@ -32,7 +33,7 @@ Here are some features of the system
 
 **HRIS Features**
 *	Work Force
-  •	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
+  *	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
  *	Functions/Buttons
    •	All & None-Delete
    •	All – Shows all employee including inactive employee
