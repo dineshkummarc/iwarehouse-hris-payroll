@@ -1,4 +1,4 @@
-# hris-with-payroll-system
+# HRIS WITH PAYROLL SYSTEM
 This is a Human Resource Information and Payroll System
 
 HRIS & Payroll System
@@ -17,52 +17,50 @@ The main objective of this system is to reduce the effort of office to keep the 
  
 Here are some features of the system
 
-Dashboard
-	Show summary of some records
-	Total Active Employee
-	Total Running Rate
-	Total Net Pay for Upcoming Payday
-	Payroll Cut-Off & Payroll Date
-	Current Date & Time
-	Total Running Salary and Deductions in Bar Graph
-	Top 10 Late of the current month
-	Top 10 Absentee of the current month
+**Dashboard**
+*	Show summary of some records
+*	Total Active Employee
+*	Total Running Rate
+*	Total Net Pay for Upcoming Payday
+*	Payroll Cut-Off & Payroll Date
+*	Current Date & Time
+*	Total Running Salary and Deductions in Bar Graph
+*	Top 10 Late of the current month
+*	Top 10 Absentee of the current month
 
 
 
+**HRIS Features**
+*	Work Force
+  •	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
+ *	Functions/Buttons
+   •	All & None-Delete
+   •	All – Shows all employee including inactive employee
+   •	None-Delete – Shows only the current active employee
+   •	Add New
+     •	Encode new employee with system generated unique ID/Employee no.
+   •	Delete
+     •	Set Employee to inactive when he/she resigned, awol or any.
+   •	Employee Shift Schedule
+     •	Set Employee Shift Schedule
+   •	Data
+     •	Show/Update Employee records
+   •	Rate & Employment Status
+     •	Add/Edit employee salary rate, allowances and Employment Status
+   •	Changes
+     •	Shows changes of record of such employee or Journal records
+*	Shift Schedule
+	 • Shows all available Shift Schedule
+  • Encode & Update Shift’s Schedule
+	 • Encode Time per shifts set
+* Position Maintenance
+	 • Shows all Job Position
+	 • Encode & Update Job Position & Job Description
+*	Store Maintenance
+	 • Shows all Store/Branch
+	 • Encode & Update Store/Branch
 
-
-HRIS Features
-	Work Force
-	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
-	Functions/Buttons
-•	All & None-Delete
-•	All – Shows all employee including inactive employee
-•	None-Delete – Shows only the current active employee
-•	Add New
-•	Encode new employee with system generated unique ID/Employee no.
-•	Delete
-•	Set Employee to inactive when he/she resigned, awol or any.
-•	Employee Shift Schedule
-•	Set Employee Shift Schedule
-•	Data
-•	Show/Update Employee records
-•	Rate & Employment Status
-•	Add/Edit employee salary rate, allowances and Employment Status
-•	Changes
-•	Shows changes of record of such employee or Journal records
-	Shift Schedule
-	Shows all available Shift Schedule
-	Encode & Update Shift’s Schedule
-	Encode Time per shifts set
-	Position Maintenance
-	Shows all Job Position
-	Encode & Update Job Position & Job Description
-	Store Maintenance
-	Shows all Job Position
-	Encode & Update Store/Branch
-
-Payroll System Features
+**Payroll System Features**
 	Deductions
 	Show all deduction list
 	Encode/Update of deductions option
