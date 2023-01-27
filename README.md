@@ -37,6 +37,8 @@ Here are some features of the system
 *	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
 		
 **Functions/Buttons**
+
+
 **All & None-Delete**
 *	All – Shows all employee including inactive employee
 *	None-Delete – Shows only the current active employee
