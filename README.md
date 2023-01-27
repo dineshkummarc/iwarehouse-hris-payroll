@@ -7,14 +7,13 @@ The “Payroll Management System” is designed to automate the existing manual 
 This system is a web-based program that can be used by any firm to manage the records of its employees. This was created with the goal of keeping track of numerous employees, their allowances, and deductions that must be given to the company’s employees. There will be an entry (a unique ID) for every employee of any company. The number of days will be submitted based on the date of joining and the date on which the salary is produced. Basic compensation will be determined by the employee’s position and department.
 
 **Advantages**
-</ul>
-<li>Easy access to the data.</li>
-<li>The new system is more user-friendly, reliable and flexible.</li>
-<li>Data alteration is easy with system records.</li>
-<li>Maintenance of the project is easy. </li>
-<li>Reduced manual work.</li>
-<li>Timely Report generation. </li>
-</ul>
+*Easy access to the data.
+*The new system is more user-friendly, reliable and flexible.
+*Data alteration is easy with system records.
+*Maintenance of the project is easy.
+*Reduced manual work.
+*Timely Report generation. 
+
 
 The main objective of this system is to reduce the effort of office to keep the daily events such as payroll, employee performance, employee attendance and employee's details.
  
