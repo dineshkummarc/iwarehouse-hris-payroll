@@ -77,20 +77,23 @@ Here are some features of the system
 *	Shows all Store/Branch
 *	Encode & Update Store/Branch
 
-**Payroll System Features**
-	Deductions
-	Show all deduction list
-	Encode/Update of deductions option
-	Employee Deductions
-	Show deduction of such employee
-	Show deduction employee ledger
-	Encode & update Employee Deductions
 
-	Payroll Adjustments
-	Encode payroll adjustment if any. Some adjustments are factor to rate.
-	Employee BioTrans
-	Show Employee list filter with date and payroll group.
-	Select Employee to show Biometric Transaction and Memo List.
+
+**Payroll System Features**
+
+**Deductions**
+*	Show all deduction list
+*	Encode/Update of deductions option
+*	Employee Deductions
+*	Show deduction of such employee
+*	Show deduction employee ledger
+*	Encode & update Employee Deductions
+
+**Payroll Adjustments**
+*	Encode payroll adjustment if any. Some adjustments are factor to rate.
+*	Employee BioTrans
+	*	Show Employee list filter with date and payroll group.
+	*	Select Employee to show Biometric Transaction and Memo List.
 	Time Log
 	This module is to generate the employee attendance within designated payroll date.
 	Show Employee no. of hrs duty per day from cut-off date to payroll day.
