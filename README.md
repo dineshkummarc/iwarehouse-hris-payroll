@@ -170,3 +170,8 @@ Here are some features of the system
 	*	Holiday with past days cannot be deleted
 *	System Configuration
 	*	This module is the system configuration for the system. Cannot be altered for security purposes. Only the admin have the access
+
+
+***FOR MORE INFOR ABOUT THIS SYSTEM KINDLY DM ME @ judithekuletz.ja@gmail.com***
+
+HAPPY CODING
