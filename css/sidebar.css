@@ -1,0 +1,132 @@
+.sidebar{
+    display: none;
+    height: 100%;
+    left: 0;
+    background: #1B2430;
+    padding-top: 40px;
+    position: fixed;
+    overflow-y: scroll;
+
+}
+
+.sidebar .text{
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 60px;
+    text-align: center;
+    background: #1B2430;
+    letter-spacing: 1px;
+}
+
+nav ul{
+    position: relative;
+    background: #2C3639;
+    height: 100%;
+    width: 100%;
+    list-style: none;
+    overflow: hidden;
+}
+
+nav ul li{
+    line-height: 35px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+nav ul li .icon{
+    line-height: 35px;
+    color: #fff;
+    position: relative;
+    font-size: 14px;
+    vertical-align: middle;
+    padding-right: 5px;
+}
+
+nav ul li:last-child{
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+nav ul li ul li{
+    line-height: 30px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+nav ul li a{
+    position: relative;
+    color: white;
+    text-decoration: none;
+    font-size: 12px;
+    padding-left: 15px;
+    font-weight: 600;
+    display: block;
+    width: 100%;
+    border-left: 3px solid transparent;
+}
+
+nav ul li.active a{
+    color: cyan;
+    background: #1B2430;
+    border-left-color: cyan;
+}
+
+nav ul li a:hover{
+    background: #1B2430;
+    border-left-color: cyan;
+}
+
+nav ul ul{
+    position: static;  
+    display: none;
+}
+
+nav ul ul li{
+    line-height: 40px;
+    border-top: none;
+}
+
+nav ul ul li a{
+    font-size: 12px;
+    color: #e6e6e6;
+    padding-left: 40px; 
+}
+
+nav ul li.active ul li a{
+    color: #e6e6e6;
+    background: #1B2430;
+    border-left-color: transparent;
+}
+
+nav ul ul li a:hover{
+    color: cyan!important;
+    background: #1B2430!important;
+}
+
+.submenuactive{
+    color: cyan!important;
+    background: #1B2430!important;
+}
+
+
+nav ul li a span.arrow{
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform:  translateY(-50%);
+    font-size: 12px;
+    transition: transform 0.4s;
+}
+
+nav ul li a span.rotate{
+    transform:  translateY(-50%) rotate(-180deg);
+}
+
+
+/* toggle button*/
+.active2{
+    margin-left: 250px;
+}
+
+.open-sidebar{
+    width: 250px;
+    display: block;
+}
