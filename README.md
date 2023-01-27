@@ -38,24 +38,32 @@ Here are some features of the system
 		
 **Functions/Buttons**
 
-
+<br/>
 **All & None-Delete**
 *	All – Shows all employee including inactive employee
 *	None-Delete – Shows only the current active employee
 
 **Add New**
 *	Encode new employee with system generated unique ID/Employee no.
+
 **Delete**
 *	Set Employee to inactive when he/she resigned, awol or any.
+
 **Employee Shift Schedule**
 *	Set Employee Shift Schedule
-**   •	Data**
-     •	Show/Update Employee records
-   •	Rate & Employment Status
-     •	Add/Edit employee salary rate, allowances and Employment Status
-   •	Changes
-     •	Shows changes of record of such employee or Journal records
-*	Shift Schedule
+
+**Data**
+*	Show/Update Employee records
+
+**Rate & Employment Status**
+*	Add/Edit employee salary rate, allowances and Employment Status
+
+**Changes**
+*	Shows changes of record of such employee or Journal records
+
+
+<br/>
+**Shift Schedule**
 	 • Shows all available Shift Schedule
   • Encode & Update Shift’s Schedule
 	 • Encode Time per shifts set
