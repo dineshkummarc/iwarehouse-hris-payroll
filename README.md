@@ -63,17 +63,19 @@ Here are some features of the system
 *	Shows changes of record of such employee or Journal records
 
 
-<br/>
+
 **Shift Schedule**
-	 • Shows all available Shift Schedule
-  • Encode & Update Shift’s Schedule
-	 • Encode Time per shifts set
-* Position Maintenance
-	 • Shows all Job Position
-	 • Encode & Update Job Position & Job Description
-*	Store Maintenance
-	 • Shows all Store/Branch
-	 • Encode & Update Store/Branch
+*	Shows all available Shift Schedule
+*	Encode & Update Shift’s Schedule*
+*	Encode Time per shifts set(24hrs format)
+
+**Position Maintenance**
+*	Shows all Job Position
+*	Encode & Update Job Position & Job Description
+
+**Store Maintenance**
+*	Shows all Store/Branch
+*	Encode & Update Store/Branch
 
 **Payroll System Features**
 	Deductions
