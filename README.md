@@ -39,9 +39,8 @@ Here are some features of the system
 		
 **Functions/Buttons**
 
-<br/>
-**All & None-Delete**
 
+**All & None-Delete**
 *	All – Shows all employee including inactive employee
 *	None-Delete – Shows only the current active employee
 
