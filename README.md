@@ -94,8 +94,8 @@ Here are some features of the system
 *	Employee BioTrans
 	*	Show Employee list filter with date and payroll group.
 	*	Select Employee to show Biometric Transaction and Memo List.
-	Time Log
-	This module is to generate the employee attendance within designated payroll date.
+*	Time Log
+*		This module is to generate the employee attendance within designated payroll date.
 	Show Employee no. of hrs duty per day from cut-off date to payroll day.
 	Payroll Earnings
 	This module is to generate all employee earnings within payroll date.
