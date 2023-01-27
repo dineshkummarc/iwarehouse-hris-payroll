@@ -38,8 +38,8 @@ Here are some features of the system
 		
 **Functions/Buttons**
 *	All & None-Delete
-*		All – Shows all employee including inactive employee
-*		None-Delete – Shows only the current active employee
+-	All – Shows all employee including inactive employee
+-	None-Delete – Shows only the current active employee
    •	Add New
      •	Encode new employee with system generated unique ID/Employee no.
    •	Delete
