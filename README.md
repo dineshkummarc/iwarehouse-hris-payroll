@@ -142,29 +142,31 @@ Here are some features of the system
 *	Plotting employee  who is absent within the date range and shows employee name and total Late.
 	*	Click the employee name to view more details.
 
+
 **SSS Reports**
-	*	Generate SSS Reports
+*	Generate SSS Reports
 
 **PhilHealth Reports**
-	*	Generate PhilHealth Reports
+*	Generate PhilHealth Reports
 
 **Pag-Ibig Report**
-	*	Generate Pag-Ibig Reports
+*	Generate Pag-Ibig Reports
+
 
 
 **System Utilities**
 
 **User Management**
-	*	Ecode/Edit user, so user can use system
+*	Ecode/Edit user, so user can use system
 **User Access Rights**
-	*	rant user such access for each modules
+*	rant user such access for each modules
 **Payroll Utilities**
-	*	Payroll Group
-		*	Encode/Edit Payroll cut-off for each employment status
-	*	Swipe Memo
-		*	Add /Edit/Update Memo List including Penaty.
-	*	Holidays
-		*	Encode/Remove Holidays
-		*	Holiday with past days cannot be deleted
-	*	System Configuration
-		*	This module is the system configuration for the system. Cannot be altered for security purposes. Only the admin have the access
+*	Payroll Group
+	*	Encode/Edit Payroll cut-off for each employment status
+*	Swipe Memo
+	*	Add /Edit/Update Memo List including Penaty.
+*	Holidays
+	*	Encode/Remove Holidays
+	*	Holiday with past days cannot be deleted
+*	System Configuration
+	*	This module is the system configuration for the system. Cannot be altered for security purposes. Only the admin have the access
