@@ -91,29 +91,37 @@ Here are some features of the system
 
 **Payroll Adjustments**
 	*	Encode payroll adjustment if any. Some adjustments are factor to rate.
+	
 **Employee BioTrans**
 	*	Show Employee list filter with date and payroll group.
 	*	Select Employee to show Biometric Transaction and Memo List.
+	
 **Time Log**
 	*	This module is to generate the employee attendance within designated payroll date.
 	*	Show Employee no. of hrs duty per day from cut-off date to payroll day.
+	
 **Payroll Earnings**
 	*	This module is to generate all employee earnings within payroll date.
+	
 **Payroll Register**
 	*	This module is to generate employee contributions and deductions.
+	
 **Payroll Accounts**
 	*	Shows all employee earnings, deductions and net pay.
 		*	Payslip
 			*	This is a system generated payslip for each employee. Ready to print to any printer.
 		*	Post Payroll
-			*	This button is to close the current payroll cut off and move to the next payroll cut off
+			*	This button is to close the current payroll cut off and move to the next payroll cut off.
+			
 **Overtime Pay**
 	*	This module is to display employee with overtime within the payroll cut-off. It also have the option to approve overtime or not.
+	
 **Generate 13th Months**
 	*	This module is to generate employee 13th month pay.
 	*	Input date range to compute 13th month and GENERATE
 		*	POST TO PAYROLL
 			*	13th Month Pay will automatic register to employee payroll account within payroll date.
+			
 **Load Attendance**
 	*	This module is to import attendance from Wall Biometric to system with confirmation. 
 
