@@ -49,7 +49,7 @@ Here are some features of the system
 *	Set Employee to inactive when he/she resigned, awol or any.
 **Employee Shift Schedule**
 *	Set Employee Shift Schedule
-   •	Data
+**   •	Data**
      •	Show/Update Employee records
    •	Rate & Employment Status
      •	Add/Edit employee salary rate, allowances and Employment Status
