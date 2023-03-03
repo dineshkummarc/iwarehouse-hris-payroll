@@ -11,6 +11,7 @@ class common_functions {
 
     function sysconfig($config_name) {
         global $db, $db_system;
+        
         $config = $db->prepare("SELECT * FROM $db_system.`_sysconfig` WHERE `config_name` LIKE :name");
         $config->execute(array(":name" => $config_name));
         if ($config->rowCount()) {

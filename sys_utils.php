@@ -17,15 +17,15 @@ if($level['user_level'] < $program_code){
 <style type="text/css">
 .tableFixHead,
 .tableFixHead td {
-  box-shadow: inset 1px -1px #000;
+	box-shadow: inset 1px -1px #000;
 }
 .tableFixHead th {
-  box-shadow: inset 1px 1px #000, 0 1px #000;
+	box-shadow: inset 1px 1px #000, 0 1px #000;
 }
 </style>
 <body>
 	<table align="center" class="w3-small w3-table-all">
-      	<thead>
+		<thead>
 			<tr>
 				<th colspan="2" class="w3-center">Config Name</th>
 				<th>Value</th>
@@ -33,7 +33,7 @@ if($level['user_level'] < $program_code){
 				<th colspan="3">Record Stamp</th>
 			</tr>
 		</thead>
-      	<tbody>
+    	<tbody>
 			<?php
 				$cnt = 0;
 				$q = "SELECT * FROM _sysconfig ORDER BY config_code";
@@ -55,10 +55,9 @@ if($level['user_level'] < $program_code){
 						<td><?php echo $d["station_id"]; ?>&nbsp;</td>
 						<td><?php echo $cfn->datefromdb(substr($d["time_stamp"], 0, 10)) . substr($d["time_stamp"], 10, 10); ?></td>
 					</tr>
-		<?php
-	}
-}
-?>
+			<?php
+			}
+		} ?>
         </tbody>
 	</table>
 </body>

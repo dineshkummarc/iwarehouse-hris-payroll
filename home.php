@@ -4,18 +4,6 @@ include('session.php');
 include('modules/system/system.config.php');
 include("common_function.class.php");
 $cfn = new common_functions();
-
-$title = mysqli_query($con,"SELECT * FROM _sysconfig WHERE isDefault") or die (mysqli_error($con));
-    while ($row=mysqli_fetch_array($title)){
-    $header = $row['config_title'];
-    if($header == 'iWarehouse'){
-        $title1 = '<span class="w3-text-orange">i</span>Warehouse';
-    }else{
-        $title1 = $header;
-    }
-    $header1 = $row['config_value'];
-}
-
 ?>
 <!DOCTYPE html>
 </html>
@@ -25,32 +13,20 @@ $title = mysqli_query($con,"SELECT * FROM _sysconfig WHERE isDefault") or die (m
     <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0"/>
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/w2ui.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    clifford: '#da373d',
-                }
-            }
-        }
-    }
-    </script>
     <link rel="stylesheet" type="text/css" href="css/w2ui.min.css"/>
     <link rel="stylesheet" type="text/css" href="css/w3-css.css"/>
     <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-flat.css">
     <link rel="stylesheet" type="text/css" href="css/sidebar.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-    <title><?php echo $header1 ?></title>
+    <title><?php echo $cfn->sysconfig('company'); ?></title>
 </head>
 <style>
 .w2ui-field input {
-  width: 500px;
+    width: 500px;
 }
 .w2ui-field > div > span {
-  margin-left: 20px;
+    margin-left: 20px;
 }
 .my-container {height: 600px;}
 .w2ui-col-header, .w2ui-panel-title, .w2ui-head {text-align: center;}
@@ -61,7 +37,7 @@ $title = mysqli_query($con,"SELECT * FROM _sysconfig WHERE isDefault") or die (m
 </style>
 <body>
 <header class="w3-container w3-center w3-black w3-mobile">
-    <h6><span id="header" class="w3-wide"><?php echo $title1; ?></span></h6>
+    <h6><span id="header" class="w3-wide"><?php if($cfn->sysconfig('company') == 'iWarehouse') echo '<span class="w3-text-orange">i</span>Warehouse'; else echo $cfn->sysconfig('company'); ?></span></h6>
 </header>
 <div class="w3-animate-left">
     <nav class="sidebar">
@@ -297,6 +273,12 @@ $title = mysqli_query($con,"SELECT * FROM _sysconfig WHERE isDefault") or die (m
     function destroy_grid(){
         if(w2ui.hasOwnProperty('journal_grid')){
             w2ui['journal_grid'].destroy();
+        }
+        if(w2ui.hasOwnProperty('activity_grid')){
+            w2ui['activity_grid'].destroy();
+        }
+        if(w2ui.hasOwnProperty('backup_grid')){
+            w2ui['backup_grid'].destroy();
         }
         if(w2ui.hasOwnProperty('prog_maint')){
             w2ui['prog_maint'].destroy();
