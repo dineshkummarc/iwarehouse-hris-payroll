@@ -123,6 +123,9 @@ require_once('../common/functions.php');
         }else{
             var _group = $('#group').w2field().get().id;
             var _store = $('#store').w2field().get().id;
+            $('#spinner').removeClass('w3-hide');
+            $('#wait').text('Please wait..');
+            $('#get_data').prop("disabled", true);
             $.ajax({
                 url: "page/time_log",
                 type: "post",
@@ -133,9 +136,15 @@ require_once('../common/functions.php');
                 },
                 success: function(data) {
                     $('#timelog_data').html(data);
+                    $('#spinner').addClass('w3-hide');
+                    $('#wait').text('');
+                    $('#get_data').prop("disabled", false);
                 },
                 error: function() {
                     w2alert("Sorry, There was a problem in server connection!");
+                    $('#spinner').addClass('w3-hide');
+                    $('#wait').text('');
+                    $('#get_data').prop("disabled", false);
                 }
             });
         }

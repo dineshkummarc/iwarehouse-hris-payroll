@@ -4,7 +4,14 @@ $program_code = 1;
 require_once('../common/functions.php');
 
 ?>
-<div id="profile_form" style="width: 40%; height: 450px;"></div>
+<div class="w3-row" style="width: 100%;">
+    <div class="w3-third w3-container">
+        <div id="profile_form" style="width: 100%; height: 450px;"></div>
+    </div>
+    <div class="w3-twothird">
+        <div id="activity_grid" style="width: 100%; height: 450px;"></div>
+    </div>      
+</div>
 
 <script type="text/javascript">
 
@@ -13,6 +20,61 @@ require_once('../common/functions.php');
     c.css("height", h);
 
     $(document).ready(function(){
+        setTimeout(function(){
+            set_ui();
+            $('#tb_activity_grid_toolbar_item_w2ui-column-on-off, #tb_activity_grid_toolbar_item_w2ui-reload, #tb_activity_grid_toolbar_item_w2ui-search, #tb_activity_grid_toolbar_item_w2ui-break0').hide();
+        },0); 
+    });
+
+    $(function () {
+        $('#profile_form').w2form({ 
+            name   : 'profile_form',
+            header : 'My Profile',
+            formURL: 'function/profile.html',
+            fields : [
+                { field: 'recid', type: 'int', required: true },
+                { field: 'uid',  type: 'int', required: true },
+                { field: 'level',   type: 'text' },
+                { field: 'name', type: 'text', required: true },
+                { field: 'user_pass', type: 'password', required:  true },
+                { field: 'user_pass1', type: 'password', required:  true },
+                { field: 'user_pass2', type: 'password', required:  true }
+            ],
+            actions: {
+                save: function () {
+                    w2confirm('Update profile?', function (btn) {
+                        if (btn === "Yes") {
+                            update_profile();
+                        }
+                    });
+                }
+            }
+        });
+    });
+
+    $(function () {    
+        $('#activity_grid').w2grid({ 
+            name: 'activity_grid',
+            header: 'MY ACTIVITY',
+            show: { 
+                header: true,
+                toolbar: true,
+                footer: true,
+                lineNumbers: true
+            },
+            multiSearch: false,
+            columns: [
+                {field: 'recid', caption: 'No', size: '100px', hidden: true},
+                {field: 'prog', caption: 'Program Opened', size: '500px'},
+                {field: 'ts', caption: 'TimeStamp', size: '200px'},
+                {field: 'ip', caption: 'IP Login', size: '200px'}
+            ],
+            records: []
+        });
+    });
+
+
+    function set_ui(){
         var div = $('#main');
         w2utils.lock(div, 'Please wait..', true);
         $.ajax({
@@ -41,33 +103,7 @@ require_once('../common/functions.php');
                 w2utils.unlock(div);
             }
         });
-    });
-
-    $(function () {
-        $('#profile_form').w2form({ 
-            name   : 'profile_form',
-            header : 'My Profile',
-            formURL: 'function/profile.html',
-            fields : [
-                { field: 'recid', type: 'int', required: true },
-                { field: 'uid',  type: 'int', required: true },
-                { field: 'level',   type: 'text' },
-                { field: 'name', type: 'text', required: true },
-                { field: 'user_pass', type: 'password', required:  true },
-                { field: 'user_pass1', type: 'password', required:  true },
-                { field: 'user_pass2', type: 'password', required:  true }
-            ],
-            actions: {
-                save: function () {
-                    w2confirm('Update profile?', function (btn) {
-                        if (btn === "Yes") {
-                            update_profile();
-                        }
-                    });
-                }
-            }
-        });
-    });
+    }
 
     function update_profile(record){
         var div = $('#main');

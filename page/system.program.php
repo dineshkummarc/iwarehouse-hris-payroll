@@ -42,6 +42,16 @@ switch ($_POST["cmd"]) {
         $uid = $_POST["id"];
         get_all_program($uid);
     break;
+    case "get-backup-data":
+        get_backup_data();
+    break;
+    case "make-backup":
+        $user = 'root';
+        make_backup($user);
+    break;
+    case "del-backup-data":
+        delete_backup($_POST['recid']);
+    break;
     case "get-user-menu":
         $uid = $_POST["id"];
         ?>
@@ -111,7 +121,7 @@ function get_default_user_rights($session_name){
                         $name = $row["name"];
                         ?>
                         <tr>
-                            <td class="w3-border w3-padding" style="cursor: pointer;" id="access<?php echo $uid; ?>" onclick="get_all_user_program(<?php echo $uid; ?>)">
+                            <td class="w3-border w3-padding select<?php echo $uid; ?> deselect" style="cursor: pointer;" id="access<?php echo $uid; ?>" onclick="get_all_user_program(<?php echo $uid; ?>)">
                                 <?php echo $name; ?>
                             </td>
                         </tr>
@@ -142,6 +152,7 @@ function get_default_user_rights($session_name){
     const src = "page/system.program";
 
     function get_all_user_program(id){
+        $('.deselect').removeClass('w3-red');
         $.ajax({
             url: src,
             type: "post",
@@ -150,6 +161,7 @@ function get_default_user_rights($session_name){
                 id : id
             },
             success: function (data){
+                $('.select'+id).addClass('w3-red');
                 $('#program_list').html(data);
                 get_user_menu(id);
             },
@@ -255,14 +267,14 @@ function get_all_program($uid){
 }
 
 function save_prog($record){
-    global $db, $hris;
+    global $db, $db_hris;
 
-    $check_parent = $db->prepare("SELECT * FROM $hris.`_program_parent` WHERE `parent_no`=:pname");
+    $check_parent = $db->prepare("SELECT * FROM $db_hris.`_program_parent` WHERE `parent_no`=:pname");
     $check_parent->execute(array(":pname" => $record["parent"]["id"]));
     if ($check_parent->rowCount()){
         $parent_data = $check_parent->fetch(PDO::FETCH_ASSOC);
 
-        $config = $db->prepare("INSERT INTO $hris.`_program`(`menu_name`, `program_name`, `user_id`, `station_id`, `is_active`, `program_level`, `program_icon`, `isAdmin_module`, `function`, `seq`, `program_parent`) VALUES (:name_menu, :prog, :uid, :host, :actv, :plevel, :icons, :isAdmin, :click, :seqs, :prog_parent)");
+        $config = $db->prepare("INSERT INTO $db_hris.`_program`(`menu_name`, `program_name`, `user_id`, `station_id`, `is_active`, `program_level`, `program_icon`, `isAdmin_module`, `function`, `seq`, `program_parent`) VALUES (:name_menu, :prog, :uid, :host, :actv, :plevel, :icons, :isAdmin, :click, :seqs, :prog_parent)");
         $config->execute(array(":name_menu" => $record["mname"], ":prog" => $record["pname"], ":uid" => $_SESSION['name'], ":host" => $_SERVER['REMOTE_ADDR'], ":actv" => $record["en"], ":plevel" => $record["level"], ":icons" => $record["icon"], ":isAdmin" => $record["isadmin"], ":click" => $record["ftn"], ":seqs" => $record["seq"], ":prog_parent" => $parent_data["parent_no"]));
 
         echo json_encode(array("status" => "success"));
@@ -273,14 +285,14 @@ function save_prog($record){
 
 
 function del_config($recid) {
-    global $db, $hris;
+    global $db, $db_hris;
 
-    $a = $db->prepare("SELECT * FROM $hris.`_program` WHERE `program_code`=:no");
+    $a = $db->prepare("SELECT * FROM $db_hris.`_program` WHERE `program_code`=:no");
     $a->execute(array(":no" => $recid));
     if ($a->rowCount()){
         $a_data = $a->fetch(PDO::FETCH_ASSOC);
 
-        $a = $db->prepare("DELETE FROM $hris.`_program` WHERE `program_code`=:no");
+        $a = $db->prepare("DELETE FROM $db_hris.`_program` WHERE `program_code`=:no");
         $a->execute(array(":no" => $recid));
         if ($a->rowCount()){
             echo json_encode(array("status" => "success"));
@@ -290,9 +302,9 @@ function del_config($recid) {
 
 
 function enable_module($recid) {
-    global $db, $hris;
+    global $db, $db_hris;
 
-    $a = $db->prepare("SELECT * FROM $hris.`_program` WHERE `program_code`=:no");
+    $a = $db->prepare("SELECT * FROM $db_hris.`_program` WHERE `program_code`=:no");
     $a->execute(array(":no" => $recid));
     if ($a->rowCount()){
         $a_data = $a->fetch(PDO::FETCH_ASSOC);
@@ -301,7 +313,7 @@ function enable_module($recid) {
         }else{
             $is_enabled = 1;
         }
-        $a = $db->prepare("UPDATE $hris.`_program` SET `is_active`=:endis, `user_id`=:uid, `station_id`=:ip WHERE `program_code`=:no");
+        $a = $db->prepare("UPDATE $db_hris.`_program` SET `is_active`=:endis, `user_id`=:uid, `station_id`=:ip WHERE `program_code`=:no");
         $a->execute(array(":endis" => $is_enabled, ":no" => $recid, ":uid" => $_SESSION["name"], ":ip" => $_SERVER["REMOTE_ADDR"]));
         if ($a->rowCount()){
             echo json_encode(array("status" => "success"));
@@ -310,9 +322,9 @@ function enable_module($recid) {
 }
 
 function grant_access($prog_id,$user_id){
-    global $db, $hris;
+    global $db, $db_hris;
 
-    $grant = $db->prepare("INSERT INTO $hris.`_user_access`(`program_code`, `user_id`, `grant_by`) VALUES (:pcode, :uid, :by)");
+    $grant = $db->prepare("INSERT INTO $db_hris.`_user_access`(`program_code`, `user_id`, `grant_by`) VALUES (:pcode, :uid, :by)");
 
     $grant->execute(array(":pcode" => $prog_id, ":uid" => $user_id, ":by" => $_SESSION['name']));
 
@@ -341,4 +353,61 @@ function get_parent() {
         }
     }
     echo json_encode(array("status" => "success", "parent" => $parent_list));
+}
+
+function get_backup_data(){
+    global $db_hris, $db;
+
+    $backup = $db->prepare("SELECT * FROM $db_hris.`_backup` ORDER BY `backup_id` ASC");
+    $backup->execute();
+    if ($backup->rowCount()) {
+        $records = array();
+        while ($backup_data = $backup->fetch(PDO::FETCH_ASSOC)) {
+            set_time_limit(60);
+            array_push($records, array("recid" => $backup_data["backup_id"], "desc" => $backup_data["backup_desc"], "date" => $backup_data["timestamp"], "size" => $backup_data["size"], "storage" => $backup_data["location"]));
+        }
+        echo json_encode(array("status" => "success", "total" => count($records), "records" => $records));
+    } else {
+        echo json_encode(array("status" => "error", "message" => "NO BACK UP FOUND!"));
+    }
+}
+
+function make_backup($user){
+    global $db_hris, $db;
+
+    $backup_file = "../backup/".$db_hris ."_". date("Y-m-d-H-i-s") . ".sql";
+    $filename = $db_hris ."_". date("Y-m-d-H-i-s") . ".sql";
+
+    $command = "C:/xampp/mysql/bin/mysqldump  -u $user $db_hris > $backup_file";
+
+    exec($command);
+
+    if(file_exists($backup_file)){
+        $insert = $db->prepare("INSERT INTO $db_hris.`_backup`(`backup_desc`, `size`, `location`) VALUES (:desc, :size, :loc)");
+        $insert->execute(array(":desc" => $filename, ":size" => number_format(filesize($backup_file) / 1024) .' KB', ":loc" => $backup_file));
+        if($insert->rowCount()){
+            echo json_encode(array("status" => "success", "message" => "Backup created successfully: {$filename}"));
+        }
+    }else{
+        echo json_encode(array("status" => "error", "message" => "Backup Failed"));
+    }
+}
+
+function delete_backup($id){
+    global $db_hris, $db;
+
+    $backup = $db->prepare("SELECT * FROM $db_hris.`_backup` WHERE `backup_id`=:id");
+    $backup->execute(array(":id" => $id));
+    if ($backup->rowCount()) {
+        $backup_data = $backup->fetch(PDO::FETCH_ASSOC);
+        $file = $backup_data['location'];
+        @unlink($file);
+        $del_backup = $db->prepare("DELETE FROM $db_hris.`_backup` WHERE `backup_id`=:id");
+        $del_backup->execute(array(":id" => $id));
+        if ($del_backup->rowCount()) {
+            echo json_encode(array("status" => "success", "message" => "Backup Deteled"));
+        }
+    }else{
+        echo json_encode(array("status" => "error", "message" => "Delete Failed"));
+    }
 }

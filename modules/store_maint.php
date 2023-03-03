@@ -58,7 +58,7 @@ require_once('../common/functions.php');
     }
 
     function get_store_data(id){
-        $('#store_'+id).removeClass('w3-orange w3-text-white');
+        $('.store_list').removeClass('w3-orange w3-text-white');
         $.ajax({
             url: src,
             type: "post",

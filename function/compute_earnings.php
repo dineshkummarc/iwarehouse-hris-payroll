@@ -86,36 +86,40 @@ function compute_earnings($pin, $date_from, $date_to, $payroll_date = "0000-00-0
         }
       }
     }*/
-
-    //holiday
-    $holiday = mysqli_query($con, "SELECT * FROM `holiday` WHERE `holiday_date`>='$date_from' AND `holiday_date`<='$date_to' AND !(SELECT COUNT(*) FROM `employee_vl` WHERE `employee_no`='$pin' AND `vl_date`=`holiday`.`holiday_date` AND !`is_cancelled` AND !`is_served`)");
-    if (@mysqli_num_rows($holiday)) {
-      while ($holiday_data = mysqli_fetch_assoc($holiday)) {
-        $time_credit = mysqli_query($con, "SELECT * FROM `time_credit` WHERE `employee_no`='$pin_no' AND `trans_date` LIKE '$holiday_data[holiday_date]' AND `credit_time`>0");
-        if (@mysqli_num_rows($time_credit)) {
-          $time_credit_data = mysqli_fetch_assoc($time_credit);
-          $credit = number_format($time_credit_data["credit_time"] / 60, 2, '.', '');
-        } else {
-          $credit = 0;
-        }
-        if ($holiday_data["is_special"]) {
+     //holiday
+    $hired = date_create($employee_rate_data['date_hired']);
+    $interval = date_diff($hired,date_create($date_to));
+    $mo = $interval->format('%m');
+    if($mo >= 1){
+      $holiday = mysqli_query($con, "SELECT * FROM `holiday` WHERE `holiday_date`>='$date_from' AND `holiday_date`<='$date_to' AND !(SELECT COUNT(*) FROM `employee_vl` WHERE `employee_no`='$pin' AND `vl_date`=`holiday`.`holiday_date` AND !`is_cancelled` AND !`is_served`)");
+      if (@mysqli_num_rows($holiday)) {
+        while ($holiday_data = mysqli_fetch_assoc($holiday)) {
+          $time_credit = mysqli_query($con, "SELECT * FROM `time_credit` WHERE `employee_no`='$pin_no' AND `trans_date` LIKE '$holiday_data[holiday_date]' AND `credit_time`>0");
           if (@mysqli_num_rows($time_credit)) {
-            $payroll_type_data = mysqli_fetch_assoc(mysqli_query($con, "SELECT * FROM `payroll_type` WHERE `pay_type` LIKE 'SH PREM'"));
-            $pay_amount = number_format($credit * $employee_rate_data["daily_rate"] / 8 * $payroll_type_data["factor_amount"], 2, '.', '');
-            if (@mysqli_num_rows(mysqli_query($con, "SELECT * FROM `payroll_trans_pay` WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'"))) {
-              mysqli_query($con, "UPDATE `payroll_trans_pay` SET `credit`=`credit`+$credit, `pay_amount`=`pay_amount`+$pay_amount WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'") or die(mysqli_error($con));
-            } else {
-              mysqli_query($con, "INSERT INTO `payroll_trans_pay` (`employee_no`, `payroll_type_no`, `payroll_date`, `credit`, `pay_amount`) VALUES ('$pin', '$payroll_type_data[payroll_type_no]', '$payroll_date', '$credit', '$pay_amount')") or die(mysqli_error($con));
-            }
-          }
-        } else {
-          $credit = 8;
-          $payroll_type_data = mysqli_fetch_assoc(mysqli_query($con, "SELECT * FROM `payroll_type` WHERE `pay_type` LIKE 'HOL. PREM'"));
-          $pay_amount = number_format($employee_rate_data["daily_rate"] * $payroll_type_data["factor_amount"], 2, '.', '');
-          if (@mysqli_num_rows(mysqli_query($con, "SELECT * FROM .`payroll_trans_pay` WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'"))) {
-            mysqli_query($con,"UPDATE `payroll_trans_pay` SET `credit`=`credit`+$credit, `pay_amount`=`pay_amount`+$pay_amount WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'") or die(mysqli_error($con));
+            $time_credit_data = mysqli_fetch_assoc($time_credit);
+            $credit = number_format($time_credit_data["credit_time"] / 60, 2, '.', '');
           } else {
-            mysqli_query($con,"INSERT INTO `payroll_trans_pay` (`employee_no`, `payroll_type_no`, `payroll_date`, `credit`, `pay_amount`) VALUES ('$pin', '$payroll_type_data[payroll_type_no]', '$payroll_date', '$credit', '$pay_amount')") or die(mysqli_error($con));
+            $credit = 0;
+          }
+          if ($holiday_data["is_special"]) {
+            if (@mysqli_num_rows($time_credit)) {
+              $payroll_type_data = mysqli_fetch_assoc(mysqli_query($con, "SELECT * FROM `payroll_type` WHERE `pay_type` LIKE 'SH PREM'"));
+              $pay_amount = number_format($credit * $employee_rate_data["daily_rate"] / 8 * $payroll_type_data["factor_amount"], 2, '.', '');
+              if (@mysqli_num_rows(mysqli_query($con, "SELECT * FROM `payroll_trans_pay` WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'"))) {
+                mysqli_query($con, "UPDATE `payroll_trans_pay` SET `credit`=`credit`+$credit, `pay_amount`=`pay_amount`+$pay_amount WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'") or die(mysqli_error($con));
+              } else {
+                mysqli_query($con, "INSERT INTO `payroll_trans_pay` (`employee_no`, `payroll_type_no`, `payroll_date`, `credit`, `pay_amount`) VALUES ('$pin', '$payroll_type_data[payroll_type_no]', '$payroll_date', '$credit', '$pay_amount')") or die(mysqli_error($con));
+              }
+            }
+          } else {
+            $credit = 8;
+            $payroll_type_data = mysqli_fetch_assoc(mysqli_query($con, "SELECT * FROM `payroll_type` WHERE `pay_type` LIKE 'HOL. PREM'"));
+            $pay_amount = number_format($employee_rate_data["daily_rate"] * $payroll_type_data["factor_amount"], 2, '.', '');
+            if (@mysqli_num_rows(mysqli_query($con, "SELECT * FROM .`payroll_trans_pay` WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'"))) {
+              mysqli_query($con,"UPDATE `payroll_trans_pay` SET `credit`=`credit`+$credit, `pay_amount`=`pay_amount`+$pay_amount WHERE `employee_no`='$pin' AND `payroll_type_no`='$payroll_type_data[payroll_type_no]' AND `payroll_date` LIKE '$payroll_date'") or die(mysqli_error($con));
+            } else {
+              mysqli_query($con,"INSERT INTO `payroll_trans_pay` (`employee_no`, `payroll_type_no`, `payroll_date`, `credit`, `pay_amount`) VALUES ('$pin', '$payroll_type_data[payroll_type_no]', '$payroll_date', '$credit', '$pay_amount')") or die(mysqli_error($con));
+            }
           }
         }
       }

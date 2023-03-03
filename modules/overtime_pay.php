@@ -19,7 +19,7 @@ const src = "page/get_bio";
 $(function () {    
     $('#ot_grid').w2grid({ 
         name: 'ot_grid',
-        header: 'EMPLOYEE OVERTIME',
+        header: 'EMPLOYEE OVERTIME WITHIN THIS CUT OFF',
         show: { 
             toolbar: true,
             footer: true,
@@ -65,7 +65,7 @@ $(function () {
 $(function () {    
     $('#approve_grid').w2grid({ 
         name: 'approve_grid',
-        header: 'APPROVED OVERTIME',
+        header: 'APPROVED OVERTIME WITHIN THIS CUT OFF',
         show: { 
             toolbar: true,
             footer: true,

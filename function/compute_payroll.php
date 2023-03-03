@@ -114,7 +114,7 @@ function compute_sss($grosspay, $preme) {
   }else{
     $premium = $table_sss_data["share_employee"] - $preme;
   }
-  return $premium;
+  return $premium/2;
 }
 
 function compute_pagibig($grosspay, $preme, $max_premium) {

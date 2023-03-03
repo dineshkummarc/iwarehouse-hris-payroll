@@ -94,7 +94,7 @@ if (@mysqli_num_rows($payroll_group)) {
                         $payroll_trans_ded= mysqli_query($con,"SELECT * FROM `payroll_trans_ded`,`master_data` WHERE `master_data`.`employee_no`=`payroll_trans_ded`.`employee_no` AND `master_data`.`store`='$store' AND `payroll_trans_ded`.`employee_no`='$payroll_trans_data[employee_no]' AND `payroll_trans_ded`.`payroll_date`='$payroll_date' AND `payroll_trans_ded`.`deduction_no`='$deduction_data[deduction_no]'");
                         if(@mysqli_num_rows($payroll_trans_ded)){
                             $payroll_trans_ded_data= mysqli_fetch_array($payroll_trans_ded);
-                            $total +=number_format($payroll_trans_ded_data["deduction_actual"],2);
+                            $total +=number_format($payroll_trans_ded_data["deduction_actual"], 2, ".", "");
                             $output .= number_format($payroll_trans_ded_data["deduction_actual"],2);
                         }
                         $output .= '</td>';

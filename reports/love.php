@@ -67,28 +67,28 @@ require_once('../common/functions.php');
             };
 
             function get_records() {
-            $.ajax({
-                url: src,
-                type: "post",
-                data: {
-                cmd: "get-loverecords",
-                paydate: $("#paydate").val(),
-                pay_group: $("#pay_group").val()
-                },
-                dataType: "json",
-                success: function (jObject) {
-                console.log(jObject);
-                if (jObject.status === "success") {
-                    w2ui.love_grid.clear();
-                    w2ui.love_grid.add(jObject.records);
-                } else if (jObject.status === "error") {
-                    w2alert(jObject.message);
-                }
-                },
-                error: function () {
-                alert("Sorry, there was a problem in server connection!");
-                }
-            });
+                $.ajax({
+                    url: src,
+                    type: "post",
+                    data: {
+                    cmd: "get-loverecords",
+                    paydate: $("#paydate").val(),
+                    pay_group: $("#pay_group").w2field().get().id
+                    },
+                    dataType: "json",
+                    success: function (jObject) {
+                    console.log(jObject);
+                    if (jObject.status === "success") {
+                        w2ui.love_grid.clear();
+                        w2ui.love_grid.add(jObject.records);
+                    } else if (jObject.status === "error") {
+                        w2alert(jObject.message);
+                    }
+                    },
+                    error: function () {
+                    alert("Sorry, there was a problem in server connection!");
+                    }
+                });
             }
 
     $(document).ready(function () {

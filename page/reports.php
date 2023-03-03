@@ -105,35 +105,37 @@ function get_gridlove_column() {
     return $items;
 }
 
+
 function get_loverecords($paydate, $pay_group) {
     global $db, $db_hris;
+
     $date = (new DateTime(str_replace(",", " 1,", $paydate)))->format("Y-m-10");
+
     $group = $db->prepare("SELECT * FROM $db_hris.`payroll_group` WHERE `group_name` LIKE :grp");
     $group->execute(array(":grp" => $pay_group));
     if ($group->rowCount()) {
         $group_data = $group->fetch(PDO::FETCH_ASSOC);
-        $payroll_group_no = $group_data["payroll_group_no"];
+        $payroll_group_no = $group_data["group_name"];
     } else {
         $payroll_group_no = 0;
     }
     $pay = $db->prepare("SELECT * FROM $db_hris.`payroll_trans` INNER JOIN $db_hris.`master_data` ON `master_data`.`employee_no`=`payroll_trans`.`employee_no` INNER JOIN $db_hris.`master_id` ON `master_id`.`employee_no`=`payroll_trans`.`employee_no` WHERE `payroll_trans`.`payroll_date` LIKE :date AND `payroll_trans`.`payroll_group_no`=:no ORDER BY `master_data`.`family_name`, `master_data`.`given_name`, `master_data`.`middle_name`");
     $pay->execute(array(":date" => $date, ":no" => $payroll_group_no));
     if ($pay->rowCount()) {
-        $ded = $db->prepare("SELECT * FROM $db_hris.`payroll_trans_ded` WHERE `employee_no`=:no AND `payroll_date` LIKE :date AND `deduction_no`=107");
+        $ded = $db->prepare("SELECT * FROM $db_hris.`payroll_trans_ded` WHERE `employee_no`=:no AND `payroll_date` LIKE :date AND `deduction_no`=:ded_no");
         $records = array();
         $summary = array("recid" => "love_sum", "summary" => true, "fname" => "", "gname" => "GRAND TOTALS", "mname" => "", "love_no" => "", "pay" => 0, "ees" => 0, "ers" => 0, "total" => 0, "ec" => 0);
         while ($pay_data = $pay->fetch(PDO::FETCH_ASSOC)) {
-            $ded->execute(array(":no" => $pay_data["employee_no"], ":date" => $date));
+            $ded->execute(array(":no" => $pay_data["employee_no"], ":date" => $date, ":ded_no"=> 107));
             if ($ded->rowCount()) {
                 $ded_data = $ded->fetch(PDO::FETCH_ASSOC);
-                $record = array("recid" => $pay_data["employee_no"], "fname" => $pay_data["family_name"], "gname" => $pay_data["given_name"], "mname" => substr($pay_data["middle_name"], 0, 1), "sssno" => $pay_data["pag_ibig"]);
-                $record["pay"] = $pay_data["grosspay_sss"];
+                $record = array("recid" => $pay_data["employee_no"], "fname" => $pay_data["family_name"], "gname" => $pay_data["given_name"], "mname" => substr($pay_data["middle_name"], 0, 1), "love_no" => $pay_data["pag_ibig"]);
+                $record["pay"] = $pay_data["grosspay_pagibig"];
                 $record["ers"] = $record["ees"] = $ded_data["deduction_actual"];
                 $record["total"] = number_format($record["ees"] + $record["ers"], 2, '.', '');
                 $summary["pay"] += $record["pay"];
                 $summary["ees"] += $record["ees"];
                 $summary["ers"] += $record["ers"];
-                $summary["ec"] += $record["ec"];
                 $summary["total"] += $record["total"];
                 $records[] = $record;
             }
@@ -142,7 +144,7 @@ function get_loverecords($paydate, $pay_group) {
             $records[] = $summary;
         }
     }else{
-        $records = $summary = array("recid" => "NO DATA", "fname" => "NO RECORDS AS OF $paydate");
+        $records = array("recid" => "NO DATA", "fname" => "NO RECORDS AS OF $date");
     }
     return $records;
 }

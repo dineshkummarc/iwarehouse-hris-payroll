@@ -8,6 +8,9 @@ switch ($_POST["cmd"]) {
     case "get-employee":
         get_employee();
     break;
+    case "get-employee-deductions":
+        get_employee_deductions($_POST["pin"]);
+    break;
     case "get-emp-ded":
         $emp_no = $_POST["emp_no"];
 
@@ -80,7 +83,135 @@ switch ($_POST["cmd"]) {
     case "get-default-ded":
         get_default_emp_ded();
     break;
+    case "show-all-emp-ded":
+        show_all_emp_ded();
+    break;
 }
+
+function show_all_emp_ded(){?>
+    <div class="w3-row">
+        <div class="w3-col s3" id="all_deduction_list">
+            <div class="w3-container" id="show_all_list">
+                <div class="w3-small">
+                    <table class="w3-table-all w3-hoverable">
+                        <thead>
+                            <tr>
+                                <th colspan="3" class="w3-orange w3-text-white">List of Employee w/ Deductions</th>
+                            </tr>
+                            <tr>
+                                <th>PIN</th>
+                                <th>Employee Name</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            global $db_hris, $db;
+
+                            $employee = $db->prepare("SELECT * FROM $db_hris.`employee_deduction`,$db_hris.`master_data` WHERE `employee_deduction`.`employee_no`=`master_data`.`employee_no` AND `employee_deduction`.`deduction_balance` > 1 GROUP BY `master_data`.`employee_no` ORDER BY `master_data`.`family_name` ASC");
+                            $employee->execute();
+                            if($employee->rowCount()) {
+                                $emp_ded = $db->prepare("SELECT SUM(`deduction_balance`) AS `balance`,`employee_no` FROM $db_hris.`employee_deduction` WHERE `employee_no`=:no");
+                                while ($emp_data = $employee->fetch(PDO::FETCH_ASSOC)) {
+                                    set_time_limit(60);
+                                    $emp_ded->execute(array(":no" => $emp_data["employee_no"]));
+                                    if($emp_ded->rowCount()) {
+                                        while ($emp_ded_data = $emp_ded->fetch(PDO::FETCH_ASSOC)){ ?>
+                                        <tr onclick="view_details(<?php echo $emp_data['pin']; ?>);" style="cursor: pointer;" id="ded<?php echo $emp_data['pin']; ?>" class="clear_ded">
+                                            <td><?php echo $emp_data['pin']; ?></td>
+                                            <td><?php echo $emp_data['family_name'].', '.$emp_data['given_name']; ?></td>
+                                            <td style="text-align: right"><?php echo number_format($emp_ded_data['balance'],2); ?></td>
+                                        </tr>
+                                        <?php
+                                        }
+                                    }
+                                }
+                            } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="w3-col s6 w3-hide w3-margin-left w3-small" id="emp_deduction_details"></div>
+    </div>
+    <script>
+        function view_details(pin){
+            $('.clear_ded').removeClass("w3-orange w3-text-white");
+            var div = $('#main');
+            w2utils.lock(div, 'Please wait.-.', true);
+            $.ajax({
+                url: "page/employee_deduction",
+                type: "post",
+                data: {
+                    cmd: "get-employee-deductions",
+                    pin : pin
+                },
+                success: function (data){
+                    if (data !== ""){
+                        $('div#emp_deduction_details').removeClass("w3-hide");
+                        $('div#emp_deduction_details').html(data);
+                        $('#ded'+pin).addClass("w3-orange w3-text-white");
+                        w2utils.unlock(div);
+                    }else{
+                        w2alert("Sorry, No DATA found!");
+                        w2utils.unlock(div);
+                    }
+                },
+                error: function (){
+                    w2alert("Sorry, there was a problem in server connection!");
+                    w2utils.unlock(div);
+                }
+            });
+        }
+    </script>
+    <?php
+}
+
+function get_employee_deductions($pin){
+    global $db, $db_hris;
+
+    $emp_ded = $db->prepare("SELECT * FROM $db_hris.`employee_deduction`,$db_hris.`master_data` WHERE `employee_deduction`.`employee_no`=`master_data`.`employee_no` AND `master_data`.`pin`=:pin");
+    $emp_ded->execute(array(":pin" => $pin));
+    if ($emp_ded->rowCount()) { ?>
+        <table class="w3-table-all w3-padding-top">
+            <thead>
+                <tr class="w3-text-orange">
+                    <th colspan="3" class="w3-center">LIST OF DEDUCTIONS</th>
+                </tr>
+                <tr>
+                    <th>Deduction</th>
+                    <th class="w3-right">Balance Amount</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <?php
+            $deduction = $db->prepare("SELECT * FROM $db_hris.`deduction` WHERE `deduction_no`=:ded_no");
+            while ($emp_ded_data = $emp_ded->fetch(PDO::FETCH_ASSOC)) {
+                $deduction->execute(array(":ded_no" => $emp_ded_data['deduction_no']));
+                if($deduction->rowCount()){
+                    while ($deduction_data = $deduction->fetch(PDO::FETCH_ASSOC)) {
+                        $emp_deduction = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:eno AND `deduction_balance`>1");
+                        $emp_deduction->execute(array(":ded_no" => $deduction_data['deduction_no'], ":eno" => $emp_ded_data['employee_no']));
+                        if($emp_deduction->rowCount()){
+                            while ($emp_deduction_data = $emp_deduction->fetch(PDO::FETCH_ASSOC)) { ?>
+                        <tbody>
+                            <tr>
+                                <td><?php echo $deduction_data['deduction_description']; ?></td>
+                                <td class="w3-right"><?php echo number_format($emp_deduction_data['deduction_balance'], 2); ?></td>
+                                <td class="w3-center"><?php echo $emp_deduction_data['user_id'].' | '.$emp_deduction_data['time_stamp']; ?></td>
+                            </tr>
+                        </tbody>
+                        <?php
+                            }
+                        }
+                }
+            }
+        }
+    } ?>
+    </table>
+    <?php
+}
+
 
 function get_default_emp_ded(){ ?>
     <div class="w3-row">
@@ -111,10 +242,6 @@ function get_default_emp_ded(){ ?>
     </div>
 
     <script type="text/javascript">
-
-	function getBack(){
-        get_default();
-	}
 
     const src = "page/employee_deduction";
 
@@ -155,9 +282,9 @@ function get_default_emp_ded(){ ?>
 
     function get_emp(){
         var div = $('#main');
-        w2utils.lock(div, 'Please wait..', true);
         var employee_no = $("#emp_list").w2field().get().id;
-        if(employee_no !== ""){
+        if($("#emp_list").val() !== ""){
+            w2utils.lock(div, 'Please wait..', true);
             $.ajax({
                 url: src,
                 type: "post",
@@ -169,8 +296,6 @@ function get_default_emp_ded(){ ?>
                     $('#deduction_list').html(data);
                     $('#clear_emp').removeClass("w3-hide");
                     $('#deduction_list').removeClass("w3-hide");
-                    $('#emp_deduction').addClass("w3-hide");
-                    $('#deduction_ledger').addClass("w3-hide");
                     w2utils.unlock(div);
                 },
                 error: function () {
@@ -179,7 +304,7 @@ function get_default_emp_ded(){ ?>
                 }
             });
         }else{
-            w2alert("Invalid Employee!");
+            w2alert("Please select Employee!","Warning");
         }
     }
 
@@ -188,6 +313,49 @@ function get_default_emp_ded(){ ?>
         $('#deduction_list').addClass("w3-hide");
         $('#emp_deduction').addClass("w3-hide");
         $('#deduction_ledger').addClass("w3-hide");
+        $('#clear_emp').addClass("w3-hide");
+    }
+
+    function getBack_all(){
+        $('#emp_ded_all').removeClass("w3-hide");
+        $('#get_emp').removeClass("w3-hide");
+        $('#emp_list').removeClass("w3-hide");
+        $('#show_all').removeClass("w3-hide");
+        $('#getBack').addClass("w3-hide");
+        $('#emp_ded').removeClass("w3-hide");
+        $('#emp_ded_all').addClass("w3-hide");
+        if($("#clear_emp").is(":hidden") == true ){  
+            $('#clear_emp').removeClass("w3-hide");
+        }
+    }
+
+    function show_all(){
+        $('#emp_list').addClass("w3-hide");
+        $('#get_emp').addClass("w3-hide");
+        $('#show_all').addClass("w3-hide");
+        $('#getBack').removeClass("w3-hide");
+        $('#emp_ded').addClass("w3-hide");
+        if($("#clear_emp").is(":visible") == true ){  
+            $('#clear_emp').addClass("w3-hide");
+        }
+        $.ajax({
+            url: src,
+            type: "post",
+            data: {
+                cmd: "show-all-emp-ded"
+            },
+            success: function (data){
+                if (data !== ""){
+                    $('#emp_ded_all').removeClass("w3-hide");
+                    $("#emp_ded_all").html(data);
+                }else{
+                    w2alert("Sorry, No DATA found!");
+                }
+            },
+            error: function () {
+                w2alert("Sorry, there was a problem in server connection or Session Expired!");
+            }
+        });
     }
 
     function new_deduction($ded_no,$emp_no){
@@ -339,7 +507,7 @@ function get_emp_ledger($emp_no,$ded_no){
         </thead>
         <tbody>
         <?php
-        $emp_ledger = $db->prepare("SELECT * FROM $db_hris.`employee_deduction_ledger` WHERE `employee_no`=:no AND `deduction_no`=:dno");
+        $emp_ledger = $db->prepare("SELECT * FROM $db_hris.`employee_deduction_ledger` WHERE `employee_no`=:no AND `deduction_no`=:dno ORDER BY `ledger_no` DESC LIMIT 20");
         $emp_ledger->execute(array(":no" => $emp_no, ":dno" => $ded_no));
         if ($emp_ledger->rowCount()) {
             while ($ledger_data = $emp_ledger->fetch(PDO::FETCH_ASSOC)) {
