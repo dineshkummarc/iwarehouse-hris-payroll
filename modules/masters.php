@@ -255,159 +255,78 @@ function get_pin_id() {
 
     //save function
     function save_Data(){
-        if ($("#remarks").val() === "") {
-            $("#remarks").focus();
-            w2alert("Please provide remarks");
-        } else {
-            var data = get_data();
-            if (data !== "") {
-                save_data_changes(data);
-            }
-        }
-    }
-
-    function get_data() {
-        var data = {}, record = "";
-        data["cmd"] = '<?php echo $_GET["cmd"]; ?>';
-        data["last_name"] = $("#last_name").val().trim();
-        data["first_name"] = $("#first_name").val().trim();
-        data["middle_name"] = $("#middle_name").val().trim();
-        data["bday"] = $("#bday").val().trim();
-        data["edate"] = $("#edate").val().trim();
-        data["gender1"] = $("#gender").val();
-        data["gender"] = $("#gender").w2field().get().id;
-        data["status"] = $("#cs").val();
-        data["position"] = $("#position").w2field().get().id;
-        data["position1"] = $("#position").val();
-        data["c_address"] = $("#c_address").val().trim();
-        data["p_address"] = $("#p_address").val().trim();
-        data["contact"] = $("#contact").val().trim();
-        data["store1"] = $("#store").val();
-        data["store"] = $("#store").w2field().get().id;
-        data["emp_no"] = $("#emp_no").val().trim();
-        data["atm"] = $("#atm").val().trim();
-        data["tin"] = $("#tin").val().trim();
-        data["sss"] = $("#sss").val().trim();
-        data["love"] = $("#love").val().trim();
-        data["phealth"] = $("#phealth").val().trim();
-        data["remarks"] = $("#remarks").val().trim();
-        data["ctax"] = $("#tin_compute").is(":checked") ? 1 : 0;
-        data["csss"] = $("#sss_compute").is(":checked") ? 1 : 0;
-        data["clove"] = $("#love_compute").is(":checked") ? 1 : 0;
-        data["cph"] = $("#ph_compute").is(":checked") ? 1 : 0;
-        var validation = validate_data(data);
-        if (validation["valid"]) {
-            record = JSON.stringify(data);
-        } else {
-            record = "";
-            w2alert(validation["message"]);
-        }
-        return record;
-    }
-
-    function validate_data(data) {
-        var valid = 1, message = "", validation = [];
-        if (data["first_name"] === "") {
-            valid = 0;
-            message = "Provide First Name";
-        }
-        if (data["last_name"] === "") {
-            valid = 0;
-            message = "Provide Family Name";
-        }
-        if (data["bday"] === "") {
-            valid = 0;
-            message = "Provide Birth Date";
-        }
-        if (data["edate"] === "") {
-            valid = 0;
-            message = "Provide Employment Date";
-        }
-        if (data["gender1"] === "") {
-            valid = 0;
-            message = "Select Male/Female";
-        }                     
-        if (data["status"] === "") {
-            valid = 0;
-            message = "Select Civil Status";
-        }
-        if (data["position1"] === "") {
-            valid = 0;
-            message = "Select Position";
-        }
-        if (data["c_address"] === "") {
-            valid = 0;
-            message = "Provide Current Address";
-        }
-        if (data["contact"] === "") {
-            valid = 0;
-            message = "Provide Contact Number";
-        }
-        if (data["store1"] === "") {
-            valid = 0;
-            message = "Select Store";
-        }
-        if (data["remarks"] === "") {
-            valid = 0;
-            message = "Provide note/remark for changes in data";
-        }
-        if (data["ctax"]) {
-            if (data["sss"] === "") {
-            valid = 0;
-            message = "Provide SSS Number";
-            }
-        }
-        if (data["ctax"]) {
-            if (data["tin"] === "") {
-            valid = 0;
-            message = "Provide TIN Number";
-            }
-        }
-        if (data["cph"]) {
-            if (data["phealth"] === "") {
-            valid = 0;
-            message = "Provide PhilHealth Number";
-            }
-        }
-        if (data["clove"]) {
-            if (data["love"] === "") {
-            valid = 0;
-            message = "Provide Pag-Ibig Number";
-            }
-        }
-        validation["valid"] = valid;
-        validation["message"] = message;
-        return validation;
-    }
-
-    function save_data_changes(record){
-        var div = $('#main');
-        w2utils.lock(div, 'Please wait..', true);
-        $.ajax({
-            url: src,
-            type: "post",
-            data: {
-                cmd: "save-data",
-                record: record
-            },
-            dataType: "json",
-            success: function (jObject){
-                if (jObject.status === "success"){
-                    w2ui.form.clear();
-                    w2utils.unlock(div);
-                    close_form();
-                }else{
-                    w2utils.unlock(div);
-                    w2alert(jObject.message);
+        var save_update = '<?php echo $_GET["cmd"]; ?>';
+        var last_name = $("#last_name").val();
+        var first_name = $("#first_name").val();
+        var middle_name = $("#middle_name").val();
+        var bday = $("#bday").val();
+        var edate = $("#edate").val();
+        var gender = $("#gender").w2field().get().id;
+        var status = $("#cs").val();
+        var position = $("#position").w2field().get().id;
+        var c_address = $("#c_address").val();
+        var p_address = $("#p_address").val();
+        var contact = $("#contact").val();
+        var store = $("#store").w2field().get().id;
+        var emp_no = $("#emp_no").val();
+        var atm = $("#atm").val();
+        var tin = $("#tin").val();
+        var sss = $("#sss").val();
+        var love = $("#love").val();
+        var phealth = $("#phealth").val();
+        var remarks = $("#remarks").val();
+        var ctax = $("#tin_compute").is(":checked");
+        var csss = $("#sss_compute").is(":checked");
+        var clove = $("#love_compute").is(":checked");
+        var cph = $("#ph_compute").is(":checked");
+        if(last_name !== "" && first_name !== "" && bday !== "" && gender !== "" && status !== "" && position !== "" && c_address !== "" && remarks !== ""  && emp_no !== ""){
+            $.ajax({
+                url: src,
+                type: "post",
+                data: {
+                    cmd: "save-data",
+                    last_name : last_name,
+                    first_name : first_name,
+                    middle_name : middle_name,
+                    bday : bday,
+                    edate : edate,
+                    gender : gender,
+                    status : status,
+                    position : position,
+                    c_address : c_address,
+                    p_address : p_address,
+                    contact : contact,
+                    store : store,
+                    emp_no : emp_no,
+                    atm : atm,
+                    tin : tin,
+                    sss : sss,
+                    love : love,
+                    phealth : phealth,
+                    remarks : remarks,
+                    save_update : save_update,
+                    ctax : ctax,
+                    csss : csss,
+                    clove : clove,
+                    cph : cph
+                },
+                dataType: "json",
+                success: function (jObject){
+                    if (jObject.status === "success"){
+                        w2ui.form.clear();
+                        close_form();
+                    }else{
+                        w2alert(jObject.message);
+                    }
+                },
+                error: function () {
+                    w2alert("Sorry, there was a problem in server connection or Session Expired!");
                 }
-            },
-            error: function () {
-                w2utils.unlock(div);
-                w2alert("Sorry, there was a problem in server connection or Session Expired!");
-            }
-        });
+            });
+        }else{
+            w2alert("Please supply all required data!");
+        }
     }
-
     //side functions
     function close_form(){
         var div = $('#main');

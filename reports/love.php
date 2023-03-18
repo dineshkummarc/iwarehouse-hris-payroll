@@ -11,85 +11,85 @@ require_once('../common/functions.php');
 <script>
     const src = "page/reports";
 
-        var config = {
-                payperiod: [],
-                group: [],
-                toolbar: {
-                    name: 'love_toolbar',
-                    items: [],
-                    onRender: function (event) {
-                        event.onComplete = function () {
-                            $(":input#paydate").w2field("list", {items: config.payperiod});
-                            $(":input#pay_group").w2field("list", {items: config.group});
-                        };
-                    },
-                    onClick: function (event) {
-                        switch (event.target) {
-                        case "gen":
-                            get_records();
-                            break;
-                        case "print":
-                            break;
-                        case "export":
-                            if (w2ui.love_grid.records.length > 0) {
-                                let _date = $('#paydate').val();
-                                let _group = $('#pay_group').w2field().get().id;
-                                window.open("page/reports.php?paydate=" + _date + "&pay_group=" + _group + "&cmd=export-love");
-                            } else {
-                                w2alert("Please generate report!");
-                            }
-                            break;
+    var config = {
+        payperiod: [],
+        group: [],
+        toolbar: {
+            name: 'love_toolbar',
+            items: [],
+            onRender: function (event) {
+                event.onComplete = function () {
+                    $(":input#paydate").w2field("list", {items: config.payperiod});
+                    $(":input#pay_group").w2field("list", {items: config.group});
+                };
+            },
+            onClick: function (event) {
+                switch (event.target) {
+                    case "gen":
+                        get_records();
+                    break;
+                    case "print":
+                    break;
+                    case "export":
+                        if (w2ui.love_grid.records.length > 0) {
+                            let _date = $('#paydate').val();
+                            let _group = $('#pay_group').w2field().get().id;
+                            window.open("page/reports.php?paydate=" + _date + "&pay_group=" + _group + "&cmd=export-love");
+                        } else {
+                            w2alert("Please generate report!");
                         }
-                    }
-                },
-                love_grid: {
-                    name: 'love_grid',
-                    show: {
-                        footer: true,
-                        toolbarReload: false,
-                        toolbar: true,
-                        lineNumbers: true
-                    },
-                    onRender: function (event) {
-                        event.onComplete = function () {
-                            setTimeout(function () {
-                                if (w2ui.toolbar) {
-                                    w2ui.toolbar.destroy();
-                                }
-                                $("div.love-toolbar").w2toolbar(config.toolbar);
-                            }, 500);
-                        };
-                    },
-                    multiSelect: true,
-                    columnGroups: [],
-                    columns: []
+                    break;
                 }
-            };
-
-            function get_records() {
-                $.ajax({
-                    url: src,
-                    type: "post",
-                    data: {
-                    cmd: "get-loverecords",
-                    paydate: $("#paydate").val(),
-                    pay_group: $("#pay_group").w2field().get().id
-                    },
-                    dataType: "json",
-                    success: function (jObject) {
-                    console.log(jObject);
-                    if (jObject.status === "success") {
-                        w2ui.love_grid.clear();
-                        w2ui.love_grid.add(jObject.records);
-                    } else if (jObject.status === "error") {
-                        w2alert(jObject.message);
-                    }
-                    },
-                    error: function () {
-                    alert("Sorry, there was a problem in server connection!");
-                    }
-                });
             }
+        },
+        love_grid: {
+            name: 'love_grid',
+            show: {
+                footer: true,
+                toolbarReload: false,
+                toolbar: true,
+                lineNumbers: true
+            },
+            onRender: function (event) {
+                event.onComplete = function () {
+                    setTimeout(function () {
+                        if (w2ui.toolbar) {
+                            w2ui.toolbar.destroy();
+                        }
+                        $("div.love-toolbar").w2toolbar(config.toolbar);
+                    }, 500);
+                };
+            },
+            multiSelect: true,
+            columnGroups: [],
+            columns: []
+        }
+    };
+
+    function get_records() {
+        $.ajax({
+            url: src,
+            type: "post",
+            data: {
+                cmd: "get-loverecords",
+                paydate: $("#paydate").val(),
+                pay_group: $("#pay_group").w2field().get().id
+            },
+            dataType: "json",
+            success: function (jObject) {
+                console.log(jObject);
+                if (jObject.status === "success") {
+                    w2ui.love_grid.clear();
+                    w2ui.love_grid.add(jObject.records);
+                } else if (jObject.status === "error") {
+                    w2alert(jObject.message);
+                }
+            },
+            error: function () {
+                alert("Sorry, there was a problem in server connection!");
+            }
+        });
+    }
 
     $(document).ready(function () {
         var c = $("div.love-window");
@@ -118,4 +118,4 @@ require_once('../common/functions.php');
             }
         });
     });
-  </script>
+</script>

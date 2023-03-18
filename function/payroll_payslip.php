@@ -105,6 +105,14 @@ function payroll_payslip($employee_no, $payroll_date, $receipt_no,$store){
                 }else{
                   $no_days = number_format($days/8,1).' Day';
                 }
+              }elseif($payroll_trans_pay_data["pay_type"] == "VACATION"){
+                if($days < 8){
+                  $no_days = number_format($days,1) .' Hrs';
+                }elseif($days > 8){
+                  $no_days = number_format($days/8,1).' Days';
+                }else{
+                  $no_days = number_format($days/8,1).' Day';
+                }
               }else{
                 $no_days = $days;
               }

@@ -9,6 +9,12 @@ $level = mysqli_fetch_array($check_level);
 if($level['user_level'] < $program_code){
     exit();
 }
+if (!isset($_SESSION["wksfr"])) {
+    $wks = new DateTime(date("m/01/Y"));
+    $wks->modify("-3 months");
+    $_SESSION["wksfr"] = $wks->format("Y-m-d");
+    $_SESSION["wksto"] = date("Y-m-d");
+}
 
 function emp_total(){
     global $db, $db_hris;
@@ -136,10 +142,17 @@ function coming_net_pay(){
 <div class="w3-col l12 m12 s12 w3-mobile w3-responsive w3-padding">
     <div class="w3-col l6 m6 s6 w3-responsive w3-mobile w3-container">
         <div class="w3-col l12 m12 s12 w3-responsive w3-mobile w3-border w3-container w3-round-medium">
+            <div class="w3-padding-medium w3-bar">
+                <input class="w3-small w3-margin-right w3-bar-item w3-transparent w3-border-bottom date" id="fr" value="<?php echo (new DateTime($_SESSION["wksfr"]))->format("m/d/Y"); ?>">
+                <input class="w3-small w3-bar-item w3-transparent w3-border-bottom date" id="to" value="<?php echo (new DateTime($_SESSION["wksto"]))->format("m/d/Y"); ?>"/>
+                <button class="w3-bar-item w3-tiny w3-hover-orange w3-hover-text-white w3-border w3-round-medium w3-margin-left" style="padding: 5px 8px;" id="refresh" onclick="refresh();">REFRESH</button>
+            </div>
             <?php
             $year = date('Y');
-            $query = $con->query("SELECT SUM(`net_pay`) AS `net_pay`,SUM(`deduction`) AS `deduction`,`payroll_date` AS `pay_date` FROM `payroll_trans` WHERE `is_posted` AND `payroll_date` GROUP BY `payroll_date` LIMIT 6");
-
+            $current_date = date('Y-m-d');
+            $from = $_SESSION["wksfr"];
+            $to = $_SESSION["wksto"];
+            $query = $con->query("SELECT SUM(`net_pay`) AS `net_pay`,SUM(`deduction`) AS `deduction`,`payroll_date` AS `pay_date` FROM `payroll_trans` WHERE `is_posted` AND `payroll_date` BETWEEN '$from' AND '$to' GROUP BY `payroll_date` ORDER BY `payroll_date` ASC LIMIT 10");
             foreach($query as $data){
                 $payroll_date[] = $data['pay_date'];
                 $net_pay[] = $data['net_pay'];
@@ -312,6 +325,7 @@ function coming_net_pay(){
 </div>
 <script>
 $(document).ready(function(){
+    $(":input.date").w2field("date");
     setTimeout(function(){
         $('#clock_btn').click();
     }, 100);
@@ -351,4 +365,32 @@ function display_c7(){
 }
 
 display_c7();
+
+
+function refresh() {
+    var div = $('#main');
+    w2utils.lock(div, 'Please wait..', true);
+    $.ajax({
+        url: "page/master1",
+        type: "post",
+        data: {
+            cmd: "refresh-workschedule",
+            fr: $("#fr").val(),
+            to: $("#to").val()
+        },
+        success: function (data) {
+            w2utils.unlock(div);
+            var jObject = jQuery.parseJSON(data);
+            if (jObject.status === "success") {
+                $('#grid').load('dashboard.php');
+            } else {
+                w2alert(jObject.message);
+            }
+        },
+        error: function () {
+            w2utils.unlock(div);
+            w2alert("Please try again later!");
+        }
+    });
+}
 </script>

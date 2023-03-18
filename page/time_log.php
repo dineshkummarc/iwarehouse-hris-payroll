@@ -68,6 +68,7 @@ switch ($_POST["cmd"]) {
                 while($date<=$payroll_cutoff){
                     $credit =  mysqli_query($con,"SELECT * FROM `time_credit` WHERE `trans_date`='$date' AND `employee_no`='$master_data[pin]' AND !`isDOD`") or die(mysqli_error($con));
                     $jo_credit =  mysqli_query($con,"SELECT * FROM `time_credit` WHERE `trans_date`='$date' AND `employee_no`='$master_data[pin]' AND `isDOD`") or die(mysqli_error($con));
+                    $evl =  mysqli_query($con,"SELECT * FROM `employee_vl` WHERE `vl_date`='$date' AND `employee_no`='$master_data[employee_no]'") or die(mysqli_error($con));
                     $time_log =  mysqli_query($con, "SELECT * FROM `attendance_log` WHERE `pin`='$master_data[pin]' AND `log_date`='$date'") or die(mysqli_error($con));
                     
                     $data .= '<td align="center" class="w3-border" style="text-align: center;"><span>';
@@ -97,6 +98,13 @@ switch ($_POST["cmd"]) {
                                             $credit_time = substr(number_format($time_hrs + 100, 0), 1, 2) . ":" . substr(number_format($time_min + 100), 1, 2);
                                             $data .= $credit_time;
                                             $total+=$jo_credit_data["credit_time"];
+                                        }else{
+                                            $data .= "-0-";
+                                        }
+                                    }elseif(@mysqli_num_rows($evl)){
+                                        $evl_data =  mysqli_fetch_array($evl);
+                                        if(!$evl_data["is_cancelled"]){
+                                            $data .= "-VL-";
                                         }else{
                                             $data .= "-0-";
                                         }

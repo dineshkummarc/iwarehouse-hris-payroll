@@ -378,7 +378,7 @@ function make_backup($user){
     $backup_file = "../backup/".$db_hris ."_". date("Y-m-d-H-i-s") . ".sql";
     $filename = $db_hris ."_". date("Y-m-d-H-i-s") . ".sql";
 
-    $command = "C:/xampp/mysql/bin/mysqldump  -u $user $db_hris > $backup_file";
+    $command = "H:/xampp/mysql/bin/mysqldump  -u $user $db_hris > $backup_file";
 
     exec($command);
 

@@ -145,6 +145,8 @@ $(function () {
             { type: 'break' },
             { type: 'button',  id: 'data',  caption: 'DATA', icon: 'fa-solid fa-file-shield'},
             { type: 'break' },
+            { type: 'button',  id: 'vl',  caption: 'VACATION LEAVE', icon: 'fa fa-tags'},
+            { type: 'break' },
             { type: 'button',  id: 'rate',  caption: 'RATE & EMPLOYMENT STATUS', icon: 'fa-solid fa-person-walking-luggage'},
             { type: 'break' },
             { type: 'button',  id: 'changes',  caption: 'CHANGES', icon: 'fa-solid fa-chart-simple'}
@@ -179,6 +181,12 @@ $(function () {
                     if(w2ui['master_grid'].getSelection().length > 0){
                         let emp_no = w2ui['master_grid'].getSelection()[0]
                         shift_schedule(emp_no);
+                    }
+                break;
+                case 'vl':
+                    if(w2ui['master_grid'].getSelection().length > 0){
+                        let emp_no = w2ui['master_grid'].getSelection()[0]
+                        vacation_leave(emp_no);
                     }
                 break;
             }
@@ -246,6 +254,21 @@ function shift_schedule(emp_no){
             $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Employee Shift Schedule</span>');
         }
     })
+}
+
+function vacation_leave(emp_no){
+    var div = $('#main');
+    w2utils.lock(div, 'Please wait..', true);
+    destroy_grid();
+    closeMenu();
+    $.ajax({
+        url: home,
+        success: function(data){
+            $('#grid').load('modules/employee_vl.php?emp_no='+emp_no);
+            $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Vacation Leave</span>');
+            w2utils.unlock(div);
+        }
+    });
 }
 
 function user_data_form(emp_no){

@@ -3,30 +3,30 @@ error_reporting(0);
 $program_code = 3;
 require_once('../common/functions.php');
 include('system/system.config.php');
-
+unset($_SESSION["wksfr"]);
 global $db, $hris;
 $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `employee_no`=:no");
 $master->execute(array(":no" => substr($_REQUEST["emp_no"], 3)));
 if ($master->rowCount()) {
-    $master_data = $master->fetch(PDO::FETCH_ASSOC);
-    $emp_no = $master_data["employee_no"];
-    $emp_pin = $master_data["pin"];
-    $name = $master_data["given_name"] . " " . $master_data["middle_name"] . " " . $master_data["family_name"];
-    if (isset($_REQUEST["set"])) {
-        $shift_set = $_REQUEST["set"];
+  $master_data = $master->fetch(PDO::FETCH_ASSOC);
+  $emp_no = $master_data["employee_no"];
+  $emp_pin = $master_data["pin"];
+  $name = $master_data["given_name"] . " " . $master_data["middle_name"] . " " . $master_data["family_name"];
+  if (isset($_REQUEST["set"])) {
+    $shift_set = $_REQUEST["set"];
+  } else {
+    if ($master_data["shift_set_no"]) {
+      $shift_set = $master_data["shift_set_no"];
     } else {
-        if ($master_data["shift_set_no"]) {
-          $shift_set = $master_data["shift_set_no"];
-        } else {
-          $shift_set = 1;
-        }
+      $shift_set = 1;
     }
-    if (!isset($_SESSION["wksfr"])) {
-        $wks = new DateTime(date("m/01/Y"));
-        $wks->modify("-1 months");
-        $_SESSION["wksfr"] = $wks->format("Y-m-d");
-        $_SESSION["wksto"] = date("Y-m-d");
-    }
+  }
+  if (!isset($_SESSION["wksfr"])) {
+    $wks = new DateTime(date("m/01/Y"));
+    $wks->modify("-1 month");
+    $_SESSION["wksfr"] = $wks->format("Y-m-d");
+    $_SESSION["wksto"] = date("Y-m-d");
+  }
 }
 ?>
 <div class="w3-col s12 w3-padding w3-small">

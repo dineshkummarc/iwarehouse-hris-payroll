@@ -11,6 +11,9 @@ switch ($_POST["cmd"]) {
     case "get-employee-deductions":
         get_employee_deductions($_POST["pin"]);
     break;
+    case "edit-bal":
+        edit_bal(array("empno" => $_POST["empno"], "ded_no" => $_POST["ded_no"], "rem" => $_POST["rem"], "amount" => $_POST["amount"]));
+    break;
     case "get-emp-ded":
         $emp_no = $_POST["emp_no"];
 
@@ -73,6 +76,9 @@ switch ($_POST["cmd"]) {
         $emp_no = $_POST['emp_no'];
         new_emp_ded($ded_no,$emp_no);
     break;
+    case "get-ded-data":
+        get_ded_data(array("eno" => $_POST["eno"], "ded_no" => $_POST["ded_no"]));
+    break;
     case "new-deductions":
         $ded_no = $_POST['ded_no'];
         $emp_no = $_POST['emp_no'];
@@ -86,6 +92,59 @@ switch ($_POST["cmd"]) {
     case "show-all-emp-ded":
         show_all_emp_ded();
     break;
+}
+
+function edit_bal($record){
+    global $db, $db_hris;
+
+    $emp_deductions = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:empno");
+    $emp_deductions->execute(array(":ded_no" => $record["ded_no"], ":empno" => $record["empno"]));
+    if ($emp_deductions->rowCount()){
+        $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_balance`=`deduction_balance`-:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:empno AND `deduction_no`=:ded_no");
+        $update_ded->execute(array(":empno" => $record["empno"], ":ded_bal" => $record["amount"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["ded_no"]));
+        if($update_ded->rowCount()){
+            $emp_ledger = $db->prepare("INSERT INTO $db_hris.`employee_deduction_ledger`(`employee_no`, `deduction_no`, `trans_date`, `amount`, `balance`, `remark`, `reference`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :date, :ded_amt, :ded_bal, :remark, :ref, :uid, :ip)");
+            $emp_ledger->execute(array(":emp_no" => $record["empno"], ":ded_no" => $record["ded_no"], ":date" => date('Y-m-d'), ":ded_amt" => '0', ":ded_bal" => $record["amount"], ":remark" => "Cancel: ".$record["rem"], ":ref" => "DEBIT MEMO", ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
+            echo json_encode(array("status" => "success"));
+        }else{
+            echo json_encode(array("status" => "error", "e" => $update_ded->errorInfo()));
+        }
+    }
+}
+
+function get_ded_data($ded_data){
+    global $db, $db_hris;
+
+    $ded = $db->prepare("SELECT * FROM $db_hris.`employee_deduction`,$db_hris.`deduction` WHERE `deduction`.`deduction_no`=`employee_deduction`.`deduction_no` AND `employee_deduction`.`employee_no`=:eno AND `employee_deduction`.`deduction_no`=:ded_no");
+    $ded->execute(array(":eno" => $ded_data['eno'],":ded_no" => $ded_data['ded_no']));
+    if ($ded->rowCount()) {
+        $deduction_data = $ded->fetch(PDO::FETCH_ASSOC);
+        $empno = $ded_data['eno'];
+        $ded_no = $ded_data['ded_no']; ?>
+        <table class="w3-table-all w3-padding-top">
+            <thead>
+                <tr class="w3-text-orange">
+                    <th colspan="2" class="w3-center">CM DEDUCTIONS FOR <?php echo $deduction_data['deduction_description']; ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="2">AVAILABLE AMOUNT TO CM: <span class="w3-text-red w3-right"><b><?php echo number_format($deduction_data['deduction_balance'], 2); ?></b></span></td>
+                </tr>
+                <tr>
+                    <td>DEDUCTED AMOUNT/CM AMOUNT:</td>
+                    <td><input class="w3-input w3-border w3-small w3-input-focus w3-round-medium" type="text" name="cm_amount" id="cm_amount" autocomplete="off" placeholder="Enter CM amount.."/></td>
+                </tr>
+                <tr>
+                    <td colspan="2"><input class="w3-input w3-border w3-small w3-input-focus w3-round-medium" type="text" name="remarks" id="remarks" autocomplete="off" placeholder="Provide remarks.."/></td>
+                </tr>
+                <tr>
+                    <td colspan="2"><button class="w3-col s12 w3-bar-item w3-button w3-teal w3-padding w3-round-medium" id="save" onclick="save_cm('<?php echo $ded_no; ?>','<?php echo $empno; ?>');">SAVE</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <?php
+    }
 }
 
 function show_all_emp_ded(){?>
@@ -132,7 +191,8 @@ function show_all_emp_ded(){?>
                 </div>
             </div>
         </div>
-        <div class="w3-col s6 w3-hide w3-margin-left w3-small" id="emp_deduction_details"></div>
+        <div class="w3-col s3 w3-hide w3-margin-left w3-small" id="emp_deduction_details"></div>
+        <div class="w3-col s3 w3-hide w3-margin-left w3-small" id="cm_balance"></div>
     </div>
     <script>
         function view_details(pin){
@@ -151,6 +211,7 @@ function show_all_emp_ded(){?>
                         $('div#emp_deduction_details').removeClass("w3-hide");
                         $('div#emp_deduction_details').html(data);
                         $('#ded'+pin).addClass("w3-orange w3-text-white");
+                        $('div#cm_balance').addClass("w3-hide");
                         w2utils.unlock(div);
                     }else{
                         w2alert("Sorry, No DATA found!");
@@ -193,9 +254,11 @@ function get_employee_deductions($pin){
                         $emp_deduction = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:eno AND `deduction_balance`>1");
                         $emp_deduction->execute(array(":ded_no" => $deduction_data['deduction_no'], ":eno" => $emp_ded_data['employee_no']));
                         if($emp_deduction->rowCount()){
-                            while ($emp_deduction_data = $emp_deduction->fetch(PDO::FETCH_ASSOC)) { ?>
+                            while ($emp_deduction_data = $emp_deduction->fetch(PDO::FETCH_ASSOC)) {
+                                $ded_no = $emp_deduction_data['deduction_no'];
+                                $eno = $emp_deduction_data['employee_no']; ?>
                         <tbody>
-                            <tr>
+                            <tr style="cursor: pointer;" onclick="edit_ded('<?php echo $ded_no; ?>','<?php echo $eno; ?>');" id="<?php echo $ded_no.$eno; ?>" class="clear_this">
                                 <td><?php echo $deduction_data['deduction_description']; ?></td>
                                 <td class="w3-right"><?php echo number_format($emp_deduction_data['deduction_balance'], 2); ?></td>
                                 <td class="w3-center"><?php echo $emp_deduction_data['user_id'].' | '.$emp_deduction_data['time_stamp']; ?></td>
@@ -250,6 +313,72 @@ function get_default_emp_ded(){ ?>
 	$(document).ready(function(){
 		get_emp_list();  
     });
+
+    function save_cm(ded_no,empno){
+        /*w2alert(empno,ded_no);*/
+        if($('#cm_amount').val() == ""){
+            w2alert('Please provide CM Amount');
+        }else if($('#remarks').val() == ""){
+            w2alert('Please provide remarks!');
+        }else{
+            w2confirm('Proceed to CM this amount?', function (btn) {
+                if (btn === "Yes") {
+                    var div = $('#main');
+                    w2utils.lock(div, 'Please wait.-.', true);
+                    $.ajax({
+                        url: src,
+                        type: "post",
+                        data: {
+                            cmd: "edit-bal",
+                            ded_no : ded_no,
+                            empno : empno,
+                            rem : $('#remarks').val(),
+                            amount : $('#cm_amount').val()
+                        },
+                        success: function (data){
+                            w2utils.unlock(div);
+                            if (data !== ""){
+                                w2alert("Success!");
+                                show_all();
+                            }else{
+                                w2alert("Sorry, Transaction can not be processed at the moment. Please try again later!");
+                                w2utils.unlock(div);
+                            }
+                        },
+                        error: function () {
+                            w2alert("Sorry, There was a problem in server connection or Session Expired!");
+                            w2utils.unlock(div);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    function edit_ded(ded_no,eno){
+        $('.clear_this').removeClass('w3-orange w3-text-white');
+        var div = $('#main');
+        w2utils.lock(div, 'Please wait.-.', true);
+        $.ajax({
+            url: src,
+            type: "post",
+            data: {
+                cmd: "get-ded-data",
+                ded_no : ded_no,
+                eno : eno
+            },
+            success: function (data){
+                $('#cm_balance').html(data);
+                $('#cm_balance').removeClass("w3-hide");
+                $('#'+ded_no+eno).addClass('w3-orange w3-text-white');
+                w2utils.unlock(div);
+            },
+            error: function () {
+                w2alert("Sorry, There was a problem in server connection or Session Expired!");
+                w2utils.unlock(div);
+            }
+        });
+    }
 
     function get_emp_list(){
         var div = $('#main');

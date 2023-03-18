@@ -16,16 +16,47 @@ switch ($_POST["cmd"]) {
     break;
     case "save-data":
         $record = json_decode(html_entity_decode($_POST["record"]), true);
-        $bday = new DateTime($record["bday"]);
+        $record["bdate"] = (new DateTime($record["bday"]))->format("Y-m-d");
+        $record["edate"] = (new DateTime($record["edate"]))->format("Y-m-d");
+        $fname = $_POST["first_name"];
+        $lname = $_POST["last_name"];
+        $mname = $_POST["middle_name"];
+        $bday1 = $_POST["bday"];
+        $edate = (new DateTime($_POST["edate"]))->format("Y-m-d");
+        $gender = $_POST["gender"];
+        $cs = $_POST["status"];
+        $position = $_POST["position"];
+        $c_address = $_POST["c_address"];
+        $p_address = $_POST["p_address"];
+        $contact = $_POST["contact"];
+        $store = $_POST["store"];
+        $atm = $_POST["atm"];
+        $emp_no = $_POST["emp_no"];
+        $tin = $_POST["tin"];
+        $sss = $_POST["sss"];
+        $love = $_POST["love"];
+        $phealth = $_POST["phealth"];
+        $remarks = $_POST["remarks"];
+        $ctax1 = $_POST["ctax"];
+        if($ctax1 == 'true'){ $ctax='1';}else{$ctax='0';}
+        $csss1 = $_POST["csss"];
+        if($csss1 == 'true'){ $csss='1';}else{$csss='0';}
+        $clove1 = $_POST["clove"];
+        if($clove1 == 'true'){ $clove='1';}else{$clove='0';}
+        $cph1 = $_POST["cph"];
+        if($cph1 == 'true'){ $cph='1';}else{$cph='0';}
+        $function = $_POST["save_update"];
+        $bday = new DateTime($bday1);
         $now = new DateTime();
         $int = $now->diff($bday); //check if employee is above 18
         if (number_format($int->y, 0, '.', '') < number_format(18, 0)) {
             echo json_encode(array("status" => "error", "message" => "Invalid birthdate.  Employee must at least 18 years old. Age is " . $int->y, "age" => $int->y));
         }else{
-            if($record["cmd"] == 'add'){
-                save_data($record);
+            $bday = $_POST["bday"];
+            if($function == 'add'){
+                save_data($emp_no,$fname,$lname,$mname,$bday,$edate,$gender,$cs,$position,$c_address,$p_address,$contact,$store,$atm,$tin,$sss,$love,$phealth,$remarks,$ctax,$csss,$clove,$cph);
             }else{
-                update_data($record);
+                update_data($emp_no,$fname,$lname,$mname,$bday,$edate,$gender,$cs,$position,$c_address,$p_address,$contact,$store,$atm,$tin,$sss,$love,$phealth,$remarks,$ctax,$csss,$clove,$cph);
             }
         }
     break;
@@ -382,53 +413,43 @@ function save_update_status($emp_status,$remarks,$emp_no) {
 
 
 //saving the changes
-function update_data($record) {
+function update_data($emp_no,$fname,$lname,$mname,$bday,$edate,$gender,$cs,$position,$c_address,$p_address,$contact,$store,$atm,$tin,$sss,$love,$phealth,$remarks,$ctax,$csss,$clove,$cph) {
     global $db, $db_hris;
 
     $master = $db->prepare("SELECT * FROM $db_hris.`master_data`,$db_hris.`master_id` WHERE `master_data`.`pin`=`master_id`.`pin_no` AND `master_data`.`pin`=:no");
-    $master->execute(array(":no" => $record["emp_no"]));
+    $master->execute(array(":no" => $emp_no));
     if ($master->rowCount()) {
-        $remark = $record["remarks"];
-        $employee_no = $record["emp_no"];
+        $remark = $remarks;
+        $employee_no = $emp_no;
         $master_data = $master->fetch(PDO::FETCH_ASSOC);
         $pin_no = $master_data["pin"];
         $_emp_no = $master_data["employee_no"];
         $change = 0;
         //start checking if have changes
-        if ($record["first_name"] != $master_data["given_name"]) {
-            $change = master_journal($master_data["given_name"], $record["first_name"], "Given name", $remark, $employee_no);
+        if ($fname != $master_data["given_name"]) {
+            $change = master_journal($master_data["given_name"], $fname, "Given name", $remark, $employee_no);
         }
-        if ($record["last_name"] != $master_data["family_name"]) {
-            $change = master_journal($master_data["family_name"], $record["last_name"], "Family name", $remark, $employee_no);
+        if ($lname != $master_data["family_name"]) {
+            $change = master_journal($master_data["family_name"], $lname, "Family name", $remark, $employee_no);
         }
-        if ($record["middle_name"] != $master_data["middle_name"]) {
-            $change = master_journal($master_data["middle_name"], $record["middle_name"], "Middle name", $remark, $employee_no);
+        if ($mname != $master_data["middle_name"]) {
+            $change = master_journal($master_data["middle_name"], $mname, "Middle name", $remark, $employee_no);
         }
-        if ($record["bday"] != $master_data["birth_date"]) {
-            $change = master_journal($master_data["birth_date"], $record["bday"], "Birth date", $remark, $employee_no);
+        if ($bday != $master_data["birth_date"]) {
+            $change = master_journal($master_data["birth_date"], $bday, "Birth date", $remark, $employee_no);
         }
-        if ($record["edate"] != $master_data["employment_date"]) {
-            $change = master_journal($master_data["employment_date"], $record["edate"], "Employment Date", $remark, $employee_no);
+        if ($edate != $master_data["employment_date"]) {
+            $change = master_journal($master_data["employment_date"], $edate, "Employment Date", $remark, $employee_no);
         }
-        if ($record["gender"] != $master_data["sex"]) {
-            if($record["gender"] == 1){
-                $sex = 'Male';
-            }else{
-                $sex = 'Female';
-            }
-            if($master_data["sex"] == 1){
-                $fsex = 'Male';
-            }else{
-                $fsex = 'Female';
-            }
-            $change = master_journal($fsex, $sex, "Gender", $remark, $employee_no);
+        if ($gender != $master_data["sex"]) {
+            $change = master_journal($master_data["sex"], $gender, "Gender", $remark, $employee_no);
         }
-        if ($record["status"] != $master_data["civil_status"]) {
-            $change = master_journal($master_data["civil_status"], $record["status"], "Civil Status", $remark, $employee_no);
+        if ($cs != $master_data["civil_status"]) {
+            $change = master_journal($master_data["civil_status"], $cs, "Civil Status", $remark, $employee_no);
         }
-        if ($record["position"] != $master_data["position_no"]) {
+        if ($position != $master_data["position_no"]) {
             $get_pos = $db->prepare("SELECT * FROM $db_hris.`position` WHERE `position_no`=:no");
-            $get_pos->execute(array(":no" => $record["position"]));
+            $get_pos->execute(array(":no" => $position));
             if($get_pos->rowCount()){
                 $get_prev_pos = $db->prepare("SELECT * FROM $db_hris.`position` WHERE `position_no`=:no");
                 $get_pos_data = $get_pos->fetch(PDO::FETCH_ASSOC);
@@ -439,69 +460,57 @@ function update_data($record) {
                 }
             }
         }
-        if ($record["c_address"] != $master_data["address"]) {
-            $change = master_journal($master_data["address"], $record["c_address"], "Current Address", $remark, $employee_no);
+        if ($c_address != $master_data["address"]) {
+            $change = master_journal($master_data["address"], $c_address, "Current Address", $remark, $employee_no);
         }
-        if ($record["p_address"] != $master_data["permanent_address"]) {
-            $change = master_journal($master_data["permanent_address"], $record["p_address"], "Permanent Address", $remark, $employee_no);
+        if ($p_address != $master_data["permanent_address"]) {
+            $change = master_journal($master_data["permanent_address"], $p_address, "Permanent Address", $remark, $employee_no);
         }
-        if ($record["contact"] != $master_data["contact"]) {
-            $change = master_journal($master_data["contact"], $record["contact"], "Contact", $remark, $employee_no);
+        if ($contact != $master_data["contact"]) {
+            $change = master_journal($master_data["contact"], $contact, "Contact", $remark, $employee_no);
         }
-        if ($record["store"] != $master_data["store"]) {
-            $get_store = $db->prepare("SELECT * FROM $db_hris.`store` WHERE `StoreCode`=:scod");
-            $get_store->execute(array(":scod" => $record["store"]));
-            if($get_store->rowCount()){
-                $get_prev_store = $db->prepare("SELECT * FROM $db_hris.`store` WHERE `StoreCode`=:no");
-                $get_store_data = $get_store->fetch(PDO::FETCH_ASSOC);
-                $get_prev_store->execute(array(":no" => $master_data["store"]));
-                if($get_prev_store->rowCount()){
-                    $get_prev_store_data = $get_prev_store->fetch(PDO::FETCH_ASSOC);
-                    $change = master_journal($get_prev_store_data["StoreName"], $get_store_data["StoreName"], "Store", $remark, $employee_no);
-                }
-            }
+        if ($store != $master_data["store"]) {
+            $change = master_journal($master_data["store"], $store, "Store", $remark, $employee_no);
         }
-        if ($record["atm"] != $master_data["bank_account"]) {
-            $change = master_journal($master_data["bank_account"], $record["atm"], "Bank Account", $remark, $employee_no);
+        if ($atm != $master_data["bank_account"]) {
+            $change = master_journal($master_data["bank_account"], $atm, "Bank Account", $remark, $employee_no);
         }
-        if ($record["tin"] != $master_data["tin"]) {
-            $change = master_journal($master_data["tin"], $record["tin"], "TIN ID", $remark, $employee_no);
+        if ($tin != $master_data["tin"]) {
+            $change = master_journal($master_data["tin"], $tin, "TIN ID", $remark, $employee_no);
         }
-        if ($record["sss"] != $master_data["sss"]) {
-            $change = master_journal($master_data["sss"], $record["sss"], "SSS ID", $remark, $employee_no);
+        if ($sss != $master_data["sss"]) {
+            $change = master_journal($master_data["sss"], $sss, "SSS ID", $remark, $employee_no);
         }
-        if ($record["love"] != $master_data["pag_ibig"]) {
-            $change = master_journal($master_data["pag_ibig"], $record["love"], "Pag-Ibig ID", $remark, $employee_no);
+        if ($love != $master_data["pag_ibig"]) {
+            $change = master_journal($master_data["pag_ibig"], $love, "Pag-Ibig ID", $remark, $employee_no);
         }
-        if ($record["phealth"] != $master_data["phil_health"]) {
-            $change = master_journal($master_data["phil_health"], $record["phealth"], "PhilHealth ID", $remark, $employee_no);
+        if ($phealth != $master_data["phil_health"]) {
+            $change = master_journal($master_data["phil_health"], $phealth, "PhilHealth ID", $remark, $employee_no);
         }
-        if ($record["ctax"] != $master_data["compute_tax"]) {
-            $change = master_journal($master_data["compute_tax"], $record["ctax"], "Compute Tax", $remark, $employee_no);
+        if ($ctax != $master_data["compute_tax"]) {
+            $change = master_journal($master_data["compute_tax"], $ctax, "Compute Tax", $remark, $employee_no);
         }
-        if ($record["cph"] != $master_data["compute_philhealth"]) {
-            $change = master_journal($master_data["compute_philhealth"], $record["cph"], "Compute PhilHealth", $remark, $employee_no);
+        if ($cph != $master_data["compute_philhealth"]) {
+            $change = master_journal($master_data["compute_philhealth"], $cph, "Compute PhilHealth", $remark, $employee_no);
         }
-        if ($record["csss"] != $master_data["compute_sss"]) {
-            $change = master_journal($master_data["compute_sss"], $record["csss"], "Compute SSS", $remark, $employee_no);
+        if ($csss != $master_data["compute_sss"]) {
+            $change = master_journal($master_data["compute_sss"], $csss, "Compute SSS", $remark, $employee_no);
         }
-        if ($record["clove"] != $master_data["compute_pagibig"]) {
-            $change = master_journal($master_data["compute_pagibig"], $record["clove"], "Compute Pag-Ibig", $remark, $employee_no);
+        if ($clove != $master_data["compute_pagibig"]) {
+            $change = master_journal($master_data["compute_pagibig"], $clove, "Compute Pag-Ibig", $remark, $employee_no);
         }
         if ($change) { //update if have changes
             $get_em_no = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `master_data`.`pin`=:no");
-            $get_em_no->execute(array(":no" => $record["emp_no"]));
+            $get_em_no->execute(array(":no" => $emp_no));
             if ($get_em_no->rowCount()) {
                 $get_em_no_data = $get_em_no->fetch(PDO::FETCH_ASSOC);
                 $_emp_no = $get_em_no_data["employee_no"];
-                $bday = (new DateTime($record["bday"]))->format("Y-m-d");
-                $edate = (new DateTime($record["edate"]))->format("Y-m-d");
 
                 $master = $db->prepare("UPDATE $db_hris.`master_data` SET `given_name`=:gname, `middle_name`=:mname, `family_name`=:fname, `birth_date`=:bday, `employment_date`=:edate, `position_no`=:position, `sex`=:sex, `civil_status`=:cs, `address`=:add, `permanent_address`=:padd, `contact`=:contact, `user_id`=:uid, `station_id`=:ip, `store`=:store WHERE `pin`=:no");
-                $update = array(":no" => $record["emp_no"], ":gname" => strtoupper($record["first_name"]), ":mname" => strtoupper($record["middle_name"]), ":fname" => strtoupper($record["last_name"]), ":bday" => $bday, ":edate" => $edate, ":position" => $record["position"], ":sex" => $record["gender"], ":cs" => $record["status"], ":add" => $record["c_address"], ":padd" => $record["p_address"], ":contact" => $record["contact"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":store" => $record["store"]);
+                $update = array(":no" => $emp_no, ":gname" => strtoupper($fname), ":mname" => strtoupper($mname), ":fname" => strtoupper($lname), ":bday" => $bday, ":edate" => $edate, ":position" => $position, ":sex" => $gender, ":cs" => $cs, ":add" => $c_address, ":padd" => $p_address, ":contact" => $contact, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":store" => $store);
 
                 $master1 = $db->prepare("UPDATE $db_hris.`master_id` SET `sss`=:sss, `compute_sss`=:csss, `compute_pagibig`=:clove, `compute_philhealth`=:cph, `compute_tax`=:ctax, `pag_ibig`=:love, `phil_health`=:ph, `tin`=:tin, `bank_account`=:bank, `user_id`=:uid, `station_id`=:ip, `employee_no`=:emp WHERE `pin_no`=:pin");
-                $update1 = array(":pin" => $pin_no, ":sss" => $record["sss"], ":csss" => $record["csss"], ":clove" => $record["clove"], ":cph" => $record["cph"], ":ctax" => $record["ctax"], ":love" => $record["love"], ":ph" => $record["phealth"], ":tin" => $record["tin"], ":bank" => $record["atm"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":emp" => $_emp_no);
+                $update1 = array(":pin" => $pin_no, ":sss" => $sss, ":csss" => $csss, ":clove" => $clove, ":cph" => $cph, ":ctax" => $ctax, ":love" => $love, ":ph" => $phealth, ":tin" => $tin, ":bank" => $atm, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":emp" => $_emp_no);
 
                 $master->execute($update);
                 $master1->execute($update1);
@@ -521,25 +530,24 @@ function update_data($record) {
 
 
 //saving the personal data
-function save_data($record) {
+function save_data($emp_no,$fname,$lname,$mname,$bday,$edate,$gender,$cs,$position,$c_address,$p_address,$contact,$store,$atm,$tin,$sss,$love,$phealth,$remarks,$ctax,$csss,$clove,$cph) {
     global $db, $db_hris;
 
     $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `family_name` LIKE :fname AND `given_name` LIKE :gname AND `middle_name` LIKE :mname AND !`is_inactive`");
-    $master->execute(array(":fname" => $record["last_name"], ":gname" => $record["first_name"], ":mname" => $record["middle_name"]));
+    $master->execute(array(":fname" => $lname, ":gname" => $fname, ":mname" => $mname));
     if ($master->rowCount()) {
-        echo json_encode(array("status" => "error", "message" => "This is an existing employee!"));
+        echo json_encode(array("status" => "error", "message" => "This is existing employee!"));
     } else {
-        $bday = (new DateTime($record["bday"]))->format("Y-m-d");
-        $edate = (new DateTime($record["edate"]))->format("Y-m-d");
         $master = $db->prepare("INSERT INTO $db_hris.`master_data` (`pin`, `given_name`, `middle_name`, `family_name`, `birth_date`, `position_no`, `employment_date`, `sex`, `civil_status`, `address`, `permanent_address`, `contact`, `user_id`, `station_id`, `id_picture`, `store`, `is_inactive`, `main_pin`, `date_hired`, `work_schedule`) VALUES (:pin, :fname, :mname, :lname, :bday, :position, :edate, :sex, :cs, :address1, :address2, :contact, :user, :station, :pic, :store, :isInactive, :mpin, :datehired, :worksched)");
-        $update = array(":pin" => $record["emp_no"], ":fname" => strtoupper($record["first_name"]), ":mname" => strtoupper($record["middle_name"]), ":lname" => strtoupper($record["last_name"]), ":bday" => $bday, ":position" => $record["position"], ":edate" => $edate, ":sex" => $record["gender"], ":cs" => $record["status"], ":address1" => $record["c_address"], ":address2" => $record["p_address"], ":contact" => $record["contact"], ":user" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR'], ":pic" => '', ":store" => $record["store"], ":isInactive" => 0, ":mpin" => $record["emp_no"], ":datehired" => date('Y-m-d'), ":worksched" => '000000,000000,000000,000000,000000,000000,000000');
+        $update = array(":pin" => $emp_no, ":fname" => strtoupper($fname), ":mname" => strtoupper($mname), ":lname" => strtoupper($lname), ":bday" => $bday, ":position" => $position, ":edate" => $edate, ":sex" => $gender, ":cs" => $cs, ":address1" => $c_address, ":address2" => $p_address, ":contact" => $contact, ":user" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR'], ":pic" => '', ":store" => $store, ":isInactive" => 0, ":mpin" => $emp_no, ":datehired" => date('Y-m-d'), ":worksched" => '000000,000000,000000,000000,000000,000000,000000');
+
         $master->execute($update);
         if ($master->rowCount()) {
-            $employee_no = $record["emp_no"];
-            master_journal("", "NEW-RECORD", "CREATION", $record["first_name"], $employee_no);
+            $employee_no = $emp_no;
+            master_journal("", "NEW-RECORD", "CREATION", $remarks, $employee_no);
             $master_id = $db->prepare("INSERT INTO $db_hris.`master_id`(`pin_no`, `sss`, `compute_sss`, `pag_ibig`, `compute_pagibig`, `max_pagibig_prem`, `phil_health`, `compute_philhealth`, `tax_code`, `tin`, `compute_tax`, `bank_account`, `pay_group`, `user_id`, `station_id`) VALUES (:pin, :sss, :c_sss, :love, :c_love, :love_prem, :ph, :c_ph, :tax, :tin, :ctax, :bank, :group, :user, :station)");
 
-            $master_id->execute(array(":pin" => $record["emp_no"], ":sss" => $record["sss"], ":c_sss" => $record["csss"], ":love" => $record["love"], ":c_love" => $record["clove"], ":love_prem" => 100, ":ph" => $record["phealth"], ":c_ph" => $record["cph"], ":tax" => 0, ":tin" => $record["tin"], ":ctax" => $record["ctax"], ":bank" => $record["atm"], ":group" => 0, ":user" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR']));
+            $master_id->execute(array(":pin" => $emp_no, ":sss" => $sss, ":c_sss" => $csss, ":love" => $love, ":c_love" => $clove, ":love_prem" => 100, ":ph" => $phealth, ":c_ph" => $cph, ":tax" => 0, ":tin" => $tin, ":ctax" => $ctax, ":bank" => $atm, ":group" => 0, ":user" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR']));
 
             echo json_encode(array("status" => "success", "recid" => $employee_no));
         } else {
@@ -650,10 +658,10 @@ function get_emp_data($emp_no) {
             $first_name = $master_data["given_name"];
             $middle_name = $master_data["middle_name"];
             $last_name = $master_data["family_name"];
-            $bday = (new DateTime($master_data["birth_date"]))->format("m/d/Y");
+            $bday = $master_data["birth_date"];
             $pos_no = $master_data["position_no"];
             $position_name = $pos_desc;
-            $edate = (new DateTime($master_data["employment_date"]))->format("m/d/Y");
+            $edate = $master_data["employment_date"];
             if($master_data["sex"]=='1'){
                 $sex = 'Male';
                 $sex_id = '1';
