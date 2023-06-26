@@ -1,44 +1,92 @@
 <?php
 
-$program_code = 8;
+$program_code = 6;
+$program_code_profile = 32;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights_profile = $cfn->get_user_rights($program_code_profile);
+$plevel_profile = $cfn->get_program_level($program_code_profile);
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
 switch ($_POST["cmd"]) {
     case "enroll":
-        $name = $_POST["name"];
-        $lvl = $_POST["lvl"];
-        enroll_user($name,$lvl);
+        if (substr($access_rights_profile, 0, 2) !== "A+") {
+            if($level >= 8 ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $name = $_POST["name"];
+            $lvl = $_POST["lvl"];
+            enroll_user($name,$lvl);
+        }
     break;
     case "enable-disable":
-        enable_disable(substr($_POST["recid"], 3));
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            enable_disable(substr($_POST["recid"], 3));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "reset-account":
-        reset_account(substr($_POST["recid"], 3));
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            reset_account(substr($_POST["recid"], 3));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-user":
-        get_user(substr($_POST["user_id"], 3));
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            get_user(substr($_POST["user_id"], 3));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "update":
-        $name = $_POST["name"];
-        $lvl = $_POST["lvl"];
-        $user_id = $_POST["user_id"];
-        update_user($name,$lvl,$user_id);
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            $name = $_POST["name"];
+            $lvl = $_POST["lvl"];
+            $user_id = $_POST["user_id"];
+            update_user($name,$lvl,$user_id);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-user-info":
-        get_user_info($_SESSION['name']);
+        if (substr($access_rights_profile, 6, 2) !== "B+") {
+            if($level <= $plevel_profile ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            get_user_info($_SESSION['name']);
+        }
     break;
     case "update-profile":
-        $acc_id = $_POST["acc_id"];
-        $uid = $_POST["uid"];
-        $name = $_POST["name"];
-        $user_pass = $_POST["user_pass"];
-        $user_pass1 = $_POST["user_pass1"];
-        $user_pass2 = $_POST["user_pass2"];
-        update_profile($acc_id,$uid,$name,$user_pass,$user_pass1,$user_pass2);
+        if (substr($access_rights_profile, 0, 6) === "A+E+D+") {
+            $acc_id = $_POST["acc_id"];
+            $user_pass = $_POST["user_pass"];
+            $user_pass1 = $_POST["user_pass1"];
+            $user_pass2 = $_POST["user_pass2"];
+            update_profile($acc_id,$user_pass,$user_pass1,$user_pass2);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 }
 
-function update_profile($acc_id,$uid,$name,$user_pass,$user_pass1,$user_pass2){
+function update_profile($acc_id,$user_pass,$user_pass1,$user_pass2){
     global $db, $db_hris;
 
     $user = $db->prepare("SELECT * FROM $db_hris.`_user` WHERE `account_id`=:aid");
@@ -80,9 +128,14 @@ function get_user_info($name) {
                 $lvl = 'System Owner';
             }else if($level=='8'){
                 $lvl = 'Admin';
+            }else if($level=='5'){
+                $lvl = "User Level 3";
+            }else if($level=='3'){
+                $lvl = "User Level 2";
             }else{
-                $lvl = "User Level-".$level;
+                $lvl = "User Level 1";
             }
+                
         }
     }
     echo json_encode(array("status" => "success", "recid" => $recid, "uid" => $uid, "fname" => $fname, "last_login" => $last_login, "lvl" => $lvl));       
@@ -144,8 +197,8 @@ function update_user($name,$lvl,$user_id) {
     $user_update->execute(array(":no" => $user_id));
     if ($user_update->rowCount()){
 
-        $update = $db->prepare("UPDATE $db_hris.`_user` SET `name`=:name, `user_level`=:lvl WHERE `user_no`=:no");
-        $update->execute(array(":name" => $name, ":lvl" => $lvl, ":no" => $user_id));
+        $update = $db->prepare("UPDATE $db_hris.`_user` SET `name`=:name, `user_level`=:lvl, `granted_by`=:grant, `station_id`=:station WHERE `user_no`=:no");
+        $update->execute(array(":name" => $name, ":lvl" => $lvl, ":no" => $user_id, ":station" => $_SERVER['REMOTE_ADDR'], ":grant" => $_SESSION["name"]));
 
         echo json_encode(array("status" => "success"));
     }
@@ -182,17 +235,6 @@ function get_user($user_id) {
             $user_no = $user_data["user_no"];
             $user_name = $user_data["name"];
             $user_level = $user_data["user_level"];
-            if($user_level=='9'){
-                $lvl = 'Admin';
-            }else if($user_level=='8'){
-                $lvl = 'Supervisor';
-            }else if($user_level=='3'){
-                $lvl = 'User Level 3';
-            }else if($user_level=='2'){
-                $lvl = 'User Level 2';
-            }else{
-                $lvl = 'User Level 1';
-            }
         }
     }
     echo json_encode(array("status" => "success", "id" => $user_no, "name" => $user_name, "level" => $user_level));       

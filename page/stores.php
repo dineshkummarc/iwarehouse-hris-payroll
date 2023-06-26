@@ -1,8 +1,20 @@
 <?php 
 
-$program_code = 3;
+$program_code = 8;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_POST["cmd"]) {
     case "get-store":
     	$sql = mysqli_query($con,"SELECT * FROM store order by StoreCode ASC") or die (mysqli_error($con));
@@ -38,26 +50,41 @@ switch ($_POST["cmd"]) {
 			</tbody>
 		</table>
 		<?php
-    	break;
+    break;
     case "get-store-id":
-    	$id = $_POST["id"];
-    	get_store_data($id);
-    	break;
+		$id = $_POST["id"];
+		get_store_data($id);
+    break;
     case "save-store":
-    	$store_name = $_POST["store_name"];
-    	$store_loc = $_POST["store_loc"];
-        save_store($store_name,$store_loc);
+		$store_name = $_POST["store_name"];
+		$store_loc = $_POST["store_loc"];
+		if (substr($access_rights, 0, 2) === "A+") {
+			save_store($store_name,$store_loc);
+		}else{
+			echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+			return;
+		}
         break;
     case "update-store":
-    	$store_id = $_POST["store_id"];
-    	$store_name = $_POST["store_name"];
-    	$store_loc = $_POST["store_loc"];
-        update_store($store_id,$store_name,$store_loc);
-        break;
+		if (substr($access_rights, 0, 4) === "A+E+") {
+			$store_id = $_POST["store_id"];
+			$store_name = $_POST["store_name"];
+			$store_loc = $_POST["store_loc"];
+			update_store($store_id,$store_name,$store_loc);
+		}else{
+			echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+			return;
+		}
+    break;
     case "del-store":
-    	$store_id = $_POST["store_id"];
-    	del_store($store_id);
-    	break;
+		if (substr($access_rights, 4, 2) === "D+") {
+			$store_id = $_POST["store_id"];
+			del_store($store_id);
+		}else{
+			echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+			return;
+		}
+    break;
 }
 
 
@@ -67,12 +94,11 @@ function save_store($store_name,$store_loc) {
 
     $user_id = $_SESSION['name'];
     $ipadd = $_SERVER['REMOTE_ADDR'];
-
     $pos_maint = $db->prepare("INSERT INTO $db_hris.`store`(`StoreName`, `StoreLocation`, `UserID`, `StationID`) VALUES (:sname, :sloc, :uid, :ip)");
-
     $pos_maint->execute(array(":sname" => $store_name, ":sloc" => $store_loc, ":uid" => $user_id, ":ip" => $ipadd));
-
-    echo json_encode(array("status" => "success"));
+	if($pos_maint->rowCount()){
+		echo json_encode(array("status" => "success"));
+	}
 }
 
 //get data
@@ -99,11 +125,10 @@ function update_store($store_id,$store_name,$store_loc) {
 	$ipadd = $_SERVER['REMOTE_ADDR'];
 
 	$update_stores = $db->prepare("UPDATE `store` SET `StoreName`=:sname, `StoreLocation`=:sloc, `UserID`=:uid, `StationID`=:ip WHERE `StoreCode`=:id");
-
 	$update_stores->execute(array(":id" => $store_id, ":sname" => $store_name, ":sloc" => $store_loc, ":uid"=> $user_id, ":ip"=> $ipadd));
-
-	echo json_encode(array("status" => "success"));
-
+	if($update_stores->rowCount()){
+		echo json_encode(array("status" => "success"));
+	}
 }
 
 //delete
@@ -112,6 +137,7 @@ function del_store($store_id) {
 
     $del = $db->prepare("DELETE FROM $db_hris.`store` WHERE `StoreCode`=:no");
     $del->execute(array(":no" => $store_id));
-    
-    echo json_encode(array("status" => "success"));
+    if($del->rowCount()){
+		echo json_encode(array("status" => "success"));
+	}
 }

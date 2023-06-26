@@ -1,6 +1,15 @@
 <?php
-$program_code = 2;
+$program_code = 6;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+};
 ?>
 <div class="w3-panel w3-container w3-border w3-round-medium">
     <div class="w3-col s12 w3-panel w3-small">
@@ -22,15 +31,14 @@ require_once('../common/functions.php');
                 <label class="w3-label">Level:</label>
                 <select id="lvl" name="lvl" class="w3-padding-small w3-round-medium" style="width: 100%;">
                     <option value="">Select User Level</option>
-                    <option value="9">Admin/Owner</option>
-                    <option value="8">Supervisor</option>
-                    <option value="7">User Level 7</option>
-                    <option value="6">User Level 6</option>
-                    <option value="5">User Level 5</option>
-                    <option value="4">User Level 4</option>
-                    <option value="3">User Level 3</option>
-                    <option value="2">User Level 2</option>
-                    <option value="1">User Level 1</option>
+                    <?php if(number_format($level, 2) > number_format(8,2)){ ?>
+                    <option value="9">System Owner</option>
+                    <option value="8">Admin</option>
+                    <?php } ?>
+                    <option value="7">Supervisor</option>
+                    <option value="5">User Level 3</option>
+                    <option value="3">User Level 2</option>
+                    <option value="2">User Level 1</option>
                 </select>
             </div>
             <div class="w3-container w3-margin-bottom w3-margin-top w3-col s2">

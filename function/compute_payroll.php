@@ -1,9 +1,9 @@
 <?php
+include('../modules/system/system.config.php');
 
 function compute_payroll($employee_no, $payroll_date, $change) {
-  include('../modules/system/system.config.php');
+  global $con;
 
-  global $db_hris;
   set_time_limit(300);
   $year = substr($payroll_date, 0, 4);
   $master_data = mysqli_fetch_array(mysqli_query($con,"SELECT * FROM `master_data` WHERE `employee_no`='$employee_no'"));
@@ -70,7 +70,7 @@ function compute_payroll($employee_no, $payroll_date, $change) {
     $actual_deduction = 0;
     if (number_format($total_deduction, 2, '.', '') > number_format($grosspay, 2, '.', '')) {
       $dist_amount = $grosspay;
-      $payroll_trans_ded = mysqli_query($con,"SELECT * FROM `payroll_trans_ded`, $`deduction` WHERE `payroll_trans_ded`.`deduction_no`=`deduction`.`deduction_no` AND `employee_no`='$employee_no' AND `payroll_date`='$payroll_date' ORDER BY `deduction`.`priority`") or die(mysqli_error($con));
+      $payroll_trans_ded = mysqli_query($con,"SELECT * FROM `payroll_trans_ded`, `deduction` WHERE `payroll_trans_ded`.`deduction_no`=`deduction`.`deduction_no` AND `employee_no`='$employee_no' AND `payroll_date`='$payroll_date' ORDER BY `deduction`.`priority`") or die(mysqli_error($con));
       if (@mysqli_num_rows($payroll_trans_ded))
         while ($payroll_trans_ded_data = mysqli_fetch_array($payroll_trans_ded)) {
           if (number_format($dist_amount, 2, '.', '') > number_format($payroll_trans_ded_data["deduction_amount"], 2, '.', '')) {
@@ -101,7 +101,8 @@ function compute_payroll($employee_no, $payroll_date, $change) {
 }
 
 function compute_sss($grosspay, $preme) {
-  include('../modules/system/system.config.php');
+  global $con;
+
   $grosspay = number_format($grosspay, 2, '.', '');
   $table_sss = mysqli_query($con,"SELECT * FROM `table_sss` WHERE `pay_from`<=$grosspay AND `pay_to`>=$grosspay ORDER BY `bracket` LIMIT 1") or die(mysqli_error($con));
   if (@mysqli_num_rows($table_sss)) {
@@ -114,11 +115,11 @@ function compute_sss($grosspay, $preme) {
   }else{
     $premium = $table_sss_data["share_employee"] - $preme;
   }
-  return $premium/2;
+  return $premium;
 }
 
 function compute_pagibig($grosspay, $preme, $max_premium) {
-  include('../modules/system/system.config.php');
+  
   $premium = number_format($grosspay * 0.02, 2, '.', '');
   if (number_format($premium, 2, '.', '') > number_format($max_premium, 2, '.', '')){
     $premium = $max_premium;
@@ -131,7 +132,7 @@ function compute_pagibig($grosspay, $preme, $max_premium) {
 }
 
 function compute_phil($grosspay, $preme) {
-  include('../modules/system/system.config.php');
+  
   /*   this is old version based on table
     $table_phil = mysqli_query($con,"SELECT * FROM $`table_phil_health` WHERE `pay_from`<=$grosspay AND `pay_to`>=$grosspay ORDER BY `bracket` LIMIT 1") or die(mysqli_error());
     if (@mysqli_num_rows($table_phil)) {
@@ -159,7 +160,8 @@ function compute_phil($grosspay, $preme) {
 }
 
 function compute_tax($grosspay, $tax_code) {
-  include('../modules/system/system.config.php');
+  global $con;
+
   $tax_amount = 0;
   $tax_code = "01" . substr($tax_code + 10000, -2);
   $table_tax = mysqli_query($con,"SELECT * FROM `table_tax` WHERE `tax_code`='$tax_code' ORDER BY `table_no`") or die(mysqli_error($con));

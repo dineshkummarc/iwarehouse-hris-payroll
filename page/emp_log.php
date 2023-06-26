@@ -1,11 +1,20 @@
 <?php
 
-$program_code = 3;
-
+$program_code = 27;
 require_once('../common/functions.php');
 include("../common_function.class.php");
 $cfn = new common_functions();
-
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_POST["cmd"]) {
     case "get-emp-bio":
         $group_name = $_POST["_group"];
@@ -26,68 +35,74 @@ switch ($_POST["cmd"]) {
         get_emp_bio_trans($pin,$date,$day);
     break;
     case "make-swipe-memo":
-        $pin=$_POST["pin"];
-        $swipe_memo_code=$_POST["code"];
-        $date = $_POST["date"];
-        $trans_date = (new DateTime($date))->format("Y-m-d");
-        $is_new=$_POST["new"];
-        $station_id = $_SERVER['REMOTE_ADDR'];
-        $session_name = $_SESSION['name'];
-        if($is_new=="1"){
-            //check if time is generated or not
-            global $db, $db_hris;
-    
-            $check_log = $db->prepare("SELECT * FROM $db_hris.`time_credit` WHERE `trans_date`=:date");
-            $check_log->execute(array(":date" => $trans_date));
-            if ($check_log->rowCount()) {
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            $pin=$_POST["pin"];
+            $swipe_memo_code=$_POST["code"];
+            $date = $_POST["date"];
+            $trans_date = (new DateTime($date))->format("Y-m-d");
+            $is_new=$_POST["new"];
+            $station_id = $_SERVER['REMOTE_ADDR'];
+            $session_name = $_SESSION['name'];
+            if($is_new=="1"){
+                //check if time is generated or not
+                global $db, $db_hris;
+        
+                $check_log = $db->prepare("SELECT * FROM $db_hris.`time_credit` WHERE `trans_date`=:date");
+                $check_log->execute(array(":date" => $trans_date));
+                if ($check_log->rowCount()) {
+                    $swipe = mysqli_query($con,"SELECT * FROM `swipe_memo_code` WHERE `swipe_memo_code`='$swipe_memo_code'");
+                    if (@mysqli_num_rows($swipe)) {
+                        $swipe_data = mysqli_fetch_array($swipe);
+                        if($swipe_data["is_penalized"] == 1){
+                            $penalty_amt = $swipe_data["penalty_amount"];
+                            $penalty_to = $swipe_data["penalty_to"];
+                            make_penalty($pin,$swipe_memo_code,$trans_date,$penalty_amt,$penalty_to);
+                        }else{
+                            if($swipe_data["is_update_time"] == 2){
+                                global $db, $db_hris;
+                                
+                                $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
+                                $master->execute(array(':pin' => $pin));
+                                if ($master->rowCount()) {
+                                    while ($master_data = $master->fetch(PDO::FETCH_ASSOC)) {
+                                        $emp_no = $master_data['employee_no'];
+                                        $time = 240;
+                                        update_emp_time($emp_no,$trans_date,$time);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if(!@mysqli_num_rows(mysqli_query($con,"SELECT * FROM `swipe_memo` WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`"))){
+                        mysqli_query($con,"INSERT INTO `swipe_memo` (`trans_date`, `pin`, `swipe_memo_code`,`user_id`, `station_id`) VALUES ('$trans_date', '$pin', '$swipe_memo_code', '$session_name', '$station_id')");
+                    }else{
+                        mysqli_query($con,"UPDATE `swipe_memo` SET `remark`='', `user_id`='$session_name', `station_id`='$station_id' WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`");
+                    }
+                    if(@mysqli_num_rows(mysqli_query($con,"SELECT * FROM `swipe_memo` WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`"))){
+                        echo json_encode(array("status" => "success"));
+                    }else{
+                        echo json_encode(array("status" => "error"));
+                    }
+                }else{
+                    echo json_encode(array("status" => "error", "message" => "Please generate time for ".$trans_date." first!"));
+                    return;
+                }
+            }else{
+                mysqli_query($con,"UPDATE `swipe_memo` SET `is_cancelled`='1', `user_id`='$session_name', `station_id`='$station_id', `cancelled_time`=NOW() WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`");
+                echo json_encode(array("status" => "success"));
                 $swipe = mysqli_query($con,"SELECT * FROM `swipe_memo_code` WHERE `swipe_memo_code`='$swipe_memo_code'");
                 if (@mysqli_num_rows($swipe)) {
                     $swipe_data = mysqli_fetch_array($swipe);
                     if($swipe_data["is_penalized"] == 1){
                         $penalty_amt = $swipe_data["penalty_amount"];
                         $penalty_to = $swipe_data["penalty_to"];
-                        make_penalty($pin,$swipe_memo_code,$trans_date,$penalty_amt,$penalty_to);
-                    }else{
-                        if($swipe_data["is_update_time"] == 2){
-                            global $db, $db_hris;
-                            
-                            $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
-                            $master->execute(array(':pin' => $pin));
-                            if ($master->rowCount()) {
-                                while ($master_data = $master->fetch(PDO::FETCH_ASSOC)) {
-                                    $emp_no = $master_data['employee_no'];
-                                    $time = 240;
-                                    update_emp_time($emp_no,$trans_date,$time);
-                                }
-                            }
-                        }
+                        cancel_penalty($pin,$swipe_memo_code,$trans_date,$penalty_amt,$penalty_to);
                     }
                 }
-                if(!@mysqli_num_rows(mysqli_query($con,"SELECT * FROM `swipe_memo` WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`"))){
-                    mysqli_query($con,"INSERT INTO `swipe_memo` (`trans_date`, `pin`, `swipe_memo_code`,`user_id`, `station_id`) VALUES ('$trans_date', '$pin', '$swipe_memo_code', '$session_name', '$station_id')");
-                }else{
-                    mysqli_query($con,"UPDATE `swipe_memo` SET `remark`='', `user_id`='$session_name', `station_id`='$station_id' WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`");
-                }
-                if(@mysqli_num_rows(mysqli_query($con,"SELECT * FROM `swipe_memo` WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`"))){
-                    echo "1";
-                }else{
-                    echo "0";
-                }
-            }else{
-                echo "Please generate time for ".$trans_date." first!";
             }
         }else{
-            mysqli_query($con,"UPDATE `swipe_memo` SET `is_cancelled`='1', `user_id`='$session_name', `station_id`='$station_id', `cancelled_time`=NOW() WHERE `trans_date`='$trans_date' AND `pin`='$pin' AND `swipe_memo_code`='$swipe_memo_code' AND !`is_cancelled`");
-            echo "1";
-            $swipe = mysqli_query($con,"SELECT * FROM `swipe_memo_code` WHERE `swipe_memo_code`='$swipe_memo_code'");
-            if (@mysqli_num_rows($swipe)) {
-                $swipe_data = mysqli_fetch_array($swipe);
-                if($swipe_data["is_penalized"] == 1){
-                    $penalty_amt = $swipe_data["penalty_amount"];
-                    $penalty_to = $swipe_data["penalty_to"];
-                    cancel_penalty($pin,$swipe_memo_code,$trans_date,$penalty_amt,$penalty_to);
-                }
-            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
         }
     break;
 
@@ -150,6 +165,8 @@ function get_emp_bio($group_name,$date){
         </tbody>
     </table>
     <?php 
+    }else{
+        echo "No data found for date ".$date;
     }
 }
 
@@ -477,7 +494,7 @@ function insert_ledger($pin,$swipe_memo_code,$trans_date,$penalty_amt,$penalty_t
                 $ref = "Swipe Memo";
 
                 $emp_ledger = $db->prepare("INSERT INTO $db_hris.`employee_deduction_ledger`(`employee_no`, `deduction_no`, `trans_date`, `amount`, `balance`, `remark`, `reference`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :date, :ded_amt, :ded_bal, :remark, :ref, :uid, :ip)");
-                $emp_ledger->execute(array(":emp_no" => $emp_no, ":ded_no" => $penalty_to, ":date" => date('Y-m-d'), ":ded_amt" => $penalty_amt, ":ded_bal" => $penalty_amt, ":remark" => $remark, ":ref" => $ref, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
+                $emp_ledger->execute(array(":emp_no" => $emp_no, ":ded_no" => $penalty_to, ":date" => date('Y-m-d'), ":ded_amt" => '-'.$penalty_amt, ":ded_bal" => $penalty_amt, ":remark" => $remark, ":ref" => $ref, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
             }else{
                 $remark = $swipe_memo_data['description']." on ".$trans_date;
                 $ref = "Swipe Memo";
@@ -501,13 +518,11 @@ function update_emp_time($emp_no,$trans_date,$time){
             $time_credited_check = $db->prepare("SELECT * FROM $db_hris.`time_credit` WHERE `employee_no`=:pin AND `trans_date`=:date");
             $time_credited_check->execute(array(":pin" => $pin, ":date" => $trans_date));
             if ($time_credited_check->rowCount()){
-                
                 $update_credit_time = $db->prepare("UPDATE $db_hris.`time_credit` SET `credit_time`=:ctime WHERE `employee_no`=:pin AND `trans_date`=:date");
                 $update_credit_time->execute(array(":pin" => $pin, ":date" => $trans_date, ":ctime" => $time));
             }else{
                 $new_credit_time = $db->prepare("INSERT INTO $db_hris.`time_credit` (`employee_no`, `trans_date`, `credit_time`) VALUES (:pin, :trans_date, :ctime)");
                 $new_credit_time->execute(array(":pin" => $pin, ":trans_date" => $trans_date, ":ctime" => $time));
-
             }
         }
     }

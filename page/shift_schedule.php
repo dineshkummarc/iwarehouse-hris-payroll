@@ -1,125 +1,168 @@
 <?php
-$program_code = 1;
+$program_code = 29;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
 switch ($_REQUEST["cmd"]) {
     case "del-shift":
-        delete_shift(array("recid" => $_POST["recid"], "code" => $_POST["shift"]));
+        if (substr($access_rights, 4, 2) === "D+") {
+            delete_shift(array("recid" => $_POST["recid"], "code" => $_POST["shift"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No access rights!!"));
+        }
         break;
     case "del-duty":
-        delete_duty(array("code" => $_POST["code"], "recid" => $_POST["recid"]));
+        if (substr($access_rights, 4, 2) === "D+") {
+            delete_duty(array("code" => $_POST["code"], "recid" => $_POST["recid"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No access rights!!"));
+        }
         break;
     case "save-new-sched":
-        $error = 0;
-        $record = array("recid" => $_POST["recid"]);
-        if (isset($_POST["time"])) {
-            if (trim($_POST["time"]) !== "") {
-            if (strpos($_POST["time"], ":")) {
-                $time = explode(":", $_POST["time"]);
-                $record["hh"] = $time[0];
-                $record["mm"] = $time[1];
-            } else {
-                $error = 1;
-            }
-            } else {
-            $error = 1;
-            }
-        } else {
-            $error = 1;
-        }
-        if ($error) {
-            echo json_encode(array("status" => "error", "message" => "Invalid time!", "d" => $_POST));
-        } else {
-            $record["duty"] = $_POST["duty"];
-            save_new_sched($record);
-        }
-        break;
-    case "save-edit-shift":
-        $error = 0;
-        $record = array("recid" => $_POST["recid"], "shift" => strtoupper(trim($_POST["shift"])));
-        if (isset($_POST["time"])) {
-            if (trim($_POST["time"]) !== "") {
-            if (strpos($_POST["time"], ":")) {
-                $time = explode(":", $_POST["time"]);
-                $record["hh"] = $time[0];
-                $record["mm"] = $time[1];
-            } else {
-                $error = 1;
-            }
-            } else {
-            $record["hh"] = $record["mm"] = 0;
-            }
-        } else {
-            $record["hh"] = $record["mm"] = 0;
-        }
-        $record["late"] = $_POST["late"];
-        if (isset($_POST["type"])) {
-            if ($_POST["type"] === "open") {
-            $record["open"] = 1;
-            $record["off"] = 0;
-            } else {
-            $record["open"] = 0;
-            $record["off"] = 1;
-            }
-        } else {
-            $record["open"] = $record["off"] = 0;
-        }
-        if ($error) {
-            echo json_encode(array("status" => "error", "message" => "Invalid start time!", "r" => $record, "i" => $_POST));
-        } else {
-            save_edit_shift($record);
-        }
-        break;
-    case "save-new-shift": //save shift of shift sets
-        $error = 0;
-        $record = array("recid" => $_POST["shift_id"], "shift" => strtoupper(trim($_POST["shift"])));
-        if (isset($_POST["time"])) {
-            if (trim($_POST["time"]) !== "") {
-                if (strpos($_POST["time"], ":")) {
-                    $time = explode(":", $_POST["time"]);
-                    $record["hh"] = $time[0];
-                    $record["mm"] = $time[1];
+        if (substr($access_rights, 0, 2) === "A+") {
+            $error = 0;
+            $record = array("recid" => $_POST["recid"]);
+            if (isset($_POST["time"])) {
+                if (trim($_POST["time"]) !== "") {
+                    if (strpos($_POST["time"], ":")) {
+                        $time = explode(":", $_POST["time"]);
+                        $record["hh"] = $time[0];
+                        $record["mm"] = $time[1];
+                    } else {
+                        $error = 1;
+                    }
                 } else {
                     $error = 1;
                 }
             } else {
-            $record["hh"] = $record["mm"] = 0;
+                $error = 1;
             }
-        } else {
-            $record["hh"] = $record["mm"] = 0;
-        }
-        $record["late"] = $_POST["late"];
-        if (isset($_POST["type"])) {
-            if ($_POST["type"] === "open") {
-            $record["open"] = 1;
-            $record["off"] = 0;
+            if ($error) {
+                echo json_encode(array("status" => "error", "message" => "Invalid time!", "d" => $_POST));
             } else {
-            $record["open"] = 0;
-            $record["off"] = 1;
+                $record["duty"] = $_POST["duty"];
+                save_new_sched($record);
             }
-        } else {
-            $record["open"] = $record["off"] = 0;
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No access rights!!"));
         }
-        if ($error) {
-            echo json_encode(array("status" => "error", "message" => "Invalid start time!", "r" => $record, "i" => $_POST));
-        } else {
-            save_new_shift($record);
+        break;
+    case "save-edit-shift":
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            $error = 0;
+            $record = array("recid" => $_POST["recid"], "shift" => strtoupper(trim($_POST["shift"])));
+            if (isset($_POST["time"])) {
+                if (trim($_POST["time"]) !== "") {
+                    if (strpos($_POST["time"], ":")) {
+                        $time = explode(":", $_POST["time"]);
+                        $record["hh"] = $time[0];
+                        $record["mm"] = $time[1];
+                    } else {
+                        $error = 1;
+                    }
+                } else {
+                $record["hh"] = $record["mm"] = 0;
+                }
+            } else {
+                $record["hh"] = $record["mm"] = 0;
+            }
+            $record["late"] = $_POST["late"];
+            if (isset($_POST["type"])) {
+                if ($_POST["type"] === "open") {
+                    $record["open"] = 1;
+                    $record["off"] = 0;
+                } else {
+                    $record["open"] = 0;
+                    $record["off"] = 1;
+                }
+            } else {
+                $record["open"] = $record["off"] = 0;
+            }
+            if ($error) {
+                echo json_encode(array("status" => "error", "message" => "Invalid start time!", "r" => $record, "i" => $_POST));
+            } else {
+                save_edit_shift($record);
+            }
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No access rights!!"));
+        }
+        break;
+    case "save-new-shift": //save shift of shift sets
+        if (substr($access_rights, 0, 2) === "A+") {
+            $error = 0;
+            $record = array("recid" => $_POST["shift_id"], "shift" => strtoupper(trim($_POST["shift"])));
+            if (isset($_POST["time"])) {
+                if (trim($_POST["time"]) !== "") {
+                    if (strpos($_POST["time"], ":")) {
+                        $time = explode(":", $_POST["time"]);
+                        $record["hh"] = $time[0];
+                        $record["mm"] = $time[1];
+                    } else {
+                        $error = 1;
+                    }
+                } else {
+                $record["hh"] = $record["mm"] = 0;
+                }
+            } else {
+                $record["hh"] = $record["mm"] = 0;
+            }
+            $record["late"] = $_POST["late"];
+            if (isset($_POST["type"])) {
+                if ($_POST["type"] === "open") {
+                $record["open"] = 1;
+                $record["off"] = 0;
+                } else {
+                $record["open"] = 0;
+                $record["off"] = 1;
+                }
+            } else {
+                $record["open"] = $record["off"] = 0;
+            }
+            if ($error) {
+                echo json_encode(array("status" => "error", "message" => "Invalid start time!", "r" => $record, "i" => $_POST));
+            } else {
+                save_new_shift($record);
+            }
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
         }
         break;
     case "save-shift":
-        save_set(array("set" => strtoupper(trim($_REQUEST["set"])), "recid" => $_REQUEST["shift_id"]));
+        if (substr($access_rights, 2, 2) === "E+") {
+            save_set(array("set" => strtoupper(trim($_REQUEST["set"])), "recid" => $_REQUEST["shift_id"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
         break;
     case "default":
         set_default();
         break;
     case "save-new-set":
-        save_new_set(array("set" => strtoupper(trim($_REQUEST["set"]))));
+        if (substr($access_rights, 0, 2) === "A+") {
+            save_new_set(array("set" => strtoupper(trim($_REQUEST["set"]))));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
         break;
     case "get-shift-detail":
-        get_shift_detail($_REQUEST["shift_id"]);
+        if (substr($access_rights, 6, 2) === "B+") {
+            get_shift_detail($_REQUEST["shift_id"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
         break;
     case "get-shift-detail-shift":
-        get_shift_detail_shift($_REQUEST["detail_shift_id"]);
+        if (substr($access_rights, 6, 2) === "B+") {
+            get_shift_detail_shift($_REQUEST["detail_shift_id"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
         break;
 }
 
@@ -206,7 +249,8 @@ function save_new_set($record) {
 }
 
 function get_shift_detail_shift($detail_shift_id) {
-    global $db, $db_hris;
+    global $db, $db_hris, $cfn;
+    $access_rights = $cfn->get_user_rights(29);
     $shifts = $db->prepare("SELECT * FROM $db_hris.`shift` WHERE `shift_code`=:no");
     $shifts->execute(array(":no" => $detail_shift_id)); 
     if ($shifts->rowCount()) {
@@ -238,8 +282,10 @@ function get_shift_detail_shift($detail_shift_id) {
                     }
                     ?> name="opt_e" type="radio" value="off" /></td>
                 <td class="w3-center">
+                    <?php if (substr($access_rights, 0, 4) === "A+E+") { ?>
                     <i class="fa-solid fa-floppy-disk  w3-small" style="cursor: pointer;" onclick="save_edit_shift('<?php echo $_REQUEST["detail_shift_id"]; ?>');" aria-hidden="true"></i>&nbsp;&nbsp;
                     <i class="fa-solid fa-file  w3-small" style="cursor: pointer;" title="Create new schedule..." onclick="new_sched_shift();" aria-hidden="true"></i>
+                    <?php } ?>
                 </td>
             </tr>
         </thead>
@@ -290,7 +336,10 @@ function get_shift_detail_shift($detail_shift_id) {
                     </td>
                     <td class="w3-center"><?php echo $detail_shift_data["hh"] . ":" . $detail_shift_data["mm"]; ?></td>
                     <td class="w3-center"><?php echo $startt . " - " . $endt; ?></td>
-                    <td class="w3-center"><i class="fa-solid fa-eraser" style="cursor: pointer;" onclick="del_duty('<?php echo $detail_shift_data["shift_seq"]; ?>', '<?php echo $detail_shift_id; ?>')" aria-hidden="true"></i></td>
+                    <td class="w3-center">
+                    <?php if (substr($access_rights, 4, 2) === "D+") { ?>
+                        <i class="fa-solid fa-eraser" style="cursor: pointer;" onclick="del_duty('<?php echo $detail_shift_data["shift_seq"]; ?>', '<?php echo $detail_shift_id; ?>')" aria-hidden="true"></i></td>
+                    <?php } ?>
                 </tr>
                 <?php
                 } ?>
@@ -326,7 +375,8 @@ function get_shift_detail_shift($detail_shift_id) {
 }
 
 function get_shift_detail($shift_id) {
-    global $db, $db_hris;
+    global $db, $db_hris, $cfn;
+    $access_rights = $cfn->get_user_rights(29);
     $shift = $db->prepare("SELECT * FROM $db_hris.`shift_set` WHERE `shift_set_no`=:no");
     $shift->execute(array(":no" => $shift_id)); 
     if ($shift->rowCount()) {
@@ -340,8 +390,11 @@ function get_shift_detail($shift_id) {
                     <input id="set_e" type="text" class="w3-input" value="<?php echo $shift_data["description"]; ?>"  />
                 </th>
                 <th class="w3-center">
+                    <?php if (substr($access_rights, 2, 2) === "E+") { ?>
                     <i class="fa-solid fa-floppy-disk w3-margin-top" style="cursor: pointer;" onclick="save_shift('<?php echo $shift_id; ?>');" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp;
+                    <?php } if (substr($access_rights, 0, 2) === "A+") { ?>
                     <i class="fa-solid fa-file w3-margin-top" style="cursor: pointer;" title="Create new shift of shift schedule..." onclick="new_shift();" aria-hidden="true"></i>
+                    <?php } ?>
                 </th>
             </tr>
             <tr>
@@ -375,7 +428,11 @@ function get_shift_detail($shift_id) {
                     if ($shift_detail_data["is_off_duty"]) {
                         echo "<i class=\"fa-solid fa-check\" aria-hidden=\"true\"></i>";
                     } ?></td>
-                <td class="w3-center"><i class="fa-solid fa-eraser" style="cursor: pointer;" onclick="del_shift('<?php echo $shift_detail_data["shift_code"]; ?>', '<?php echo $shift_id; ?>');" aria-hidden="true"></i></td>
+                <td class="w3-center">
+                    <?php if (substr($access_rights, 4, 2) === "D+") {  ?> 
+                    <i class="fa-solid fa-eraser" style="cursor: pointer;" onclick="del_shift('<?php echo $shift_detail_data["shift_code"]; ?>', '<?php echo $shift_id; ?>');" aria-hidden="true"></i>
+                    <?php } ?>
+                </td>
             </tr>
         <?php
             }
@@ -404,7 +461,8 @@ function get_shift_detail($shift_id) {
 
 
 function set_default() {
-    global $db, $db_hris;
+    global $db, $db_hris, $cfn;
+    $access_rights = $cfn->get_user_rights(29);
     ?>
     <div class="window w3-col l12 m12 s12 w3-responsive w3-mobile w3-row" style="overflow-y: scroll;">
         <div class="w3-col s4 w3-padding w3-row-padding">
@@ -413,7 +471,9 @@ function set_default() {
                 <tr>
                     <th colspan="2" class="w3-center">
                         AVAILABLE SHIFT'S SCHEDULE
+                        <?php if (substr($access_rights, 0, 2) === "A+") { ?>
                         <i class="fa-solid fa-file w3-right w3-padding" style="cursor: pointer;" title="Create new set of shift schedule..." onclick="set_new();" aria-hidden="true"></i>
+                        <?php } ?>
                     </th>
                 </tr>
             </thead>

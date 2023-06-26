@@ -1,6 +1,26 @@
 <?php
 $program_code = 1;
 require_once('../common/functions.php');
+if (!isset($_SESSION["emp_no"])) {
+    $_SESSION["emp_no"] = '';
+}
+if (!isset($_SESSION["filter"])) {
+    $_SESSION["filter"] = 'non_del';
+}
+unset($_SESSION["wksfr"]);
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile" id="master">
     <div id="master_toolbar" style="padding: 3px;"></div>
@@ -8,6 +28,8 @@ require_once('../common/functions.php');
 </div>
 
 <script type="text/javascript">
+    var filter = '<?php echo $_SESSION["filter"]; ?>';
+    let emp_no = '<?php echo $_SESSION["emp_no"]; ?>';
 
     var c = $("div#master_grid");
     var h = window.innerHeight - 185;
@@ -82,7 +104,6 @@ $(function () {
 });
 
 $(document).ready(function(){
-    var filter = 1;
     get_master_data(filter);
 });
 
@@ -123,8 +144,16 @@ function get_master_data(filter){
                 w2ui['master_grid'].refresh();
                 w2ui['master_grid'].add(jObject.records);
                 w2ui['master_grid'].unlock();
-                if(filter == 0){
+                w2ui['master_grid'].select(emp_no);
+                if(filter == "all"){
+                    w2ui['master_grid'].toolbar.show('recall');
                     w2ui['master_grid'].toolbar.disable('recall');
+                    w2ui['master_toolbar'].check('all');
+                    w2ui['master_grid'].toolbar.disable('del');
+                }else{
+                    w2ui['master_grid'].toolbar.hide('recall');
+                    w2ui['master_toolbar'].check('non_del');
+                    w2ui['master_grid'].toolbar.disable('del');
                 }
             }else{
                 w2alert(jObject.message);
@@ -138,7 +167,7 @@ $(function () {
         name: 'master_toolbar',
         items: [
             { type: 'radio', id: 'all', group: '1', text: 'All', icon: 'fa-solid fa-eye' },
-            { type: 'radio', id: 'non_del', group: '1', text: 'None-Delete', icon: 'fa-solid fa-bookmark', checked: true },
+            { type: 'radio', id: 'non_del', group: '1', text: 'None-Delete', icon: 'fa-solid fa-bookmark'},
             { type: 'spacer' },
             { type: 'break' },
             { type: 'button',  id: 'shift',  caption: 'EMPLOYEE SHIFT SCHEDULE', icon: 'fa-solid fa-server'},
@@ -170,12 +199,8 @@ $(function () {
                     }
                 break;
                 case "all":
-                    get_master_data(0);
-                    w2ui['master_grid'].toolbar.show('recall');
-                break;
                 case "non_del":
-                    get_master_data(1);
-                    w2ui['master_grid'].toolbar.hide('recall');
+                    get_master_data(event.target);
                 break;
                 case 'shift':
                     if(w2ui['master_grid'].getSelection().length > 0){
@@ -202,7 +227,7 @@ function add_new(){
     $.ajax({
         url: home,
         success: function(data){
-            $('#grid').load('modules/master.php?emp_no=0&&cmd=add');
+            $('#grid').load('modules/master.php?emp_no=0&cmd=add');
             $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;New Employee</span>');
             w2utils.unlock(div);
         }
@@ -218,7 +243,7 @@ function delete_emp(pin){
             if (data !== ""){
                 var _return = jQuery.parseJSON(data);
                 if(_return.status === "success"){
-                    get_master_data(1);
+                    get_master_data(filter);
                 }else{
                     w2alert(_return.message);
                 }
@@ -236,7 +261,7 @@ function recall_emp(emp_no){
             if (data !== ""){
                 var _return = jQuery.parseJSON(data);
                 if(_return.status === "success"){
-                    get_master_data(0);
+                    get_master_data(filter);
                 }else{
                     w2alert(_return.message);
                 }
@@ -257,18 +282,23 @@ function shift_schedule(emp_no){
 }
 
 function vacation_leave(emp_no){
-    var div = $('#main');
-    w2utils.lock(div, 'Please wait..', true);
-    destroy_grid();
-    closeMenu();
-    $.ajax({
-        url: home,
-        success: function(data){
-            $('#grid').load('modules/employee_vl.php?emp_no='+emp_no);
-            $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Vacation Leave</span>');
-            w2utils.unlock(div);
-        }
-    });
+    var level = '<?php echo $level = $cfn->get_user_level(); ?>';
+    if(level >= 10){
+        var div = $('#main');
+        w2utils.lock(div, 'Please wait..', true);
+        destroy_grid();
+        closeMenu();
+        $.ajax({
+            url: home,
+            success: function(data){
+                $('#grid').load('modules/employee_vl.php?emp_no='+emp_no);
+                $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Vacation Leave</span>');
+                w2utils.unlock(div);
+            }
+        });
+    }else{
+        w2alert('This module is disabled by administrator! Contact the admin for assistance.');
+    }
 }
 
 function user_data_form(emp_no){
@@ -276,7 +306,7 @@ function user_data_form(emp_no){
     $.ajax({
         url: home,
         success: function(data){
-            $('#grid').load('modules/master.php?emp_no='+ emp_no +"&&cmd=edit");
+            $('#grid').load('modules/master.php?emp_no='+ emp_no +"&cmd=edit");
             $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Employee Info</span>');
         }
     })
@@ -298,7 +328,7 @@ function view_rate(recid){
     $.ajax({
         url: home,
         success: function(data){
-            $('#grid').load("modules/employee_rate_maint.php?emp_no="+ recid+"&&cmd=edit");
+            $('#grid').load("modules/employee_rate_maint.php?emp_no="+ recid+"&cmd=edit");
             $('#active_program').append('<span class="w3-text-black" id="append_data">&nbsp;<i class="fa-solid fa-angle-right"></i>&nbsp;Employee Rate & Position</span>');
         }
     })  

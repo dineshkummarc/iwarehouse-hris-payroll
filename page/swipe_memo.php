@@ -1,21 +1,43 @@
 <?php
 
-$program_code = 3;
+$program_code = 38;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_POST["cmd"]) {
     case "get-swipe-data": //get data of swipe transaction
-        $memo_no = $_POST["memo_no"];
-        get_swipe_data($memo_no);
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            $memo_no = $_POST["memo_no"];
+            get_swipe_data($memo_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "add-update-swipe-data": //adding new swipe data
-        $memo_no = $_POST["memo_no"];
-        $desc = $_POST["swipe_desc"];
-        $amount = $_POST["penalty"];
-        $penalty_to = $_POST["to"];
-        $penalized = $_POST["penalized"];
-        $update_time = $_POST["update_time"];
-        save_swipe_data($memo_no,$desc,$amount,$penalty_to,$penalized,$update_time);
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            $memo_no = $_POST["memo_no"];
+            $desc = $_POST["swipe_desc"];
+            $amount = $_POST["penalty"];
+            $penalty_to = $_POST["to"];
+            $penalized = $_POST["penalized"];
+            $update_time = $_POST["update_time"];
+            save_swipe_data($memo_no,$desc,$amount,$penalty_to,$penalized,$update_time);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 }
 

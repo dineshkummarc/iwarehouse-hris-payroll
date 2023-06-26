@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 2;
+$program_code = 1;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+"){
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 $pin_no=substr($_GET["emp_no"], 3);
 $cmd = $_GET["cmd"];
 
@@ -11,6 +23,8 @@ $emp_no_row=mysqli_num_rows($check_emp_no);
 $row=mysqli_fetch_array($check_emp_no);
 if($emp_no_row > 0){
     $emp_no = $row['employee_no'];
+    $pin = $row['pin'];
+    $_SESSION["emp_no"] = '100'.$emp_no;
     $rate = number_format($row['daily_rate'], 2);
     $incentive = number_format($row['incentive_cash'], 2);
     $total = number_format($row['total_pay'], 2);
@@ -126,15 +140,16 @@ th     { background:#eee; }
         <div class="w3-col s12 w3-margin-top">
             <div class="w3-col s12 w3-container">
                 <label class="w3-label w3-padding-bottom">Incentives</label>
-                <input name="incentive" type="text" id="incentive" maxlength="100" style="width: 100%" class="rate w2ui-input w3-round-medium w3-padding-small w3-border" value="<?php echo $incentive; ?>">
+                <input name="incentive" type="text" id="incentive" maxlength="100" style="width: 100%" class="rate w2ui-input w3-round-medium w3-padding-small w3-border" value="<?php echo $incentive; ?>" />
             </div>
         </div>
         <div class="w3-col s12 w3-margin-top">
             <div class="w3-col s12 w3-container">
                 <label class="w3-label w3-padding-bottom">Total Pay</label>
-                <input name="total" type="text" id="total" maxlength="100" style="width: 100%" class="w2ui-input w3-round-medium w3-padding-small w3-border" value="<?php echo $total; ?>" readonly>
+                <input name="total" type="text" id="total" maxlength="100" style="width: 100%" class="w2ui-input w3-round-medium w3-padding-small w3-border" value="<?php echo $total; ?>" readonly />
             </div>
         </div>
+        <?php if (substr($access_rights, 0, 4) === "A+E+"){ ?>
         <div class="w3-col s12 w3-margin-top">
             <div class="w3-col s12 w3-container">
                 <textarea name="rate_remarks" type="text" id="rate_remarks" style="width: 100%; height: 50px; resize: none" class="w3-input" placeholder="Remarks for rate changes" required></textarea>
@@ -145,6 +160,7 @@ th     { background:#eee; }
                 <button class="w3-button w3-padding-small w3-right w3-round-medium w3-green w3-hover-black" id="save" onclick="save_rate()">Save Rate</button>
             </div>
         </div>
+        <?php } ?>
     </div>
 
     <div class="w3-col s6 m5 w3-panel">
@@ -172,6 +188,7 @@ th     { background:#eee; }
                 </select>
             </div>
         </div>
+        <?php if (substr($access_rights, 0, 4) === "A+E+"){ ?>
         <div class="w3-col s12 w3-margin-top">
             <div class="w3-col s12 w3-container">
                 <textarea name="remarks" type="text" id="remarks" class="w3-input" style="width: 100%; height: 50px; resize: none" placeholder="Remarks for employment status" required></textarea>
@@ -182,6 +199,7 @@ th     { background:#eee; }
                 <button class="w3-button w3-padding-small w3-right w3-round-medium w3-green w3-hover-black" id="save" onclick="save_employment()">Save Status</button>
             </div>
         </div>
+        <?php } ?>
         <div class="w3-col s12 w3-margin-top">
             <span class="w3-center">EMPLOYMENT HISTORY</span>
             <div class="w3-col s12 w3-container">
@@ -192,7 +210,7 @@ th     { background:#eee; }
                     </thead>
                 <?php
                 
-                $rhist = mysqli_query($con,"SELECT * FROM master_journal,master_data WHERE master_journal.reference LIKE '%Employment%' AND master_data.pin=master_journal.employee_no AND master_data.employee_no='$pin_no' order by master_journal.seq_no DESC") or die (mysqli_error($con));
+                $rhist = mysqli_query($con,"SELECT * FROM master_journal WHERE `reference` LIKE '%Employment Status%' AND `employee_no`='$pin' order by `seq_no` DESC") or die (mysqli_error($con));
                     while ($rhist_data=mysqli_fetch_array($rhist)){
                         $ref=$rhist_data['reference'];
                         $from=$rhist_data['change_from'];
@@ -219,7 +237,7 @@ th     { background:#eee; }
                     </thead>
                 <?php
                 
-                $hist = mysqli_query($con,"SELECT * FROM master_journal,master_data WHERE master_journal.change_to > 0 AND master_journal.change_to < 10000 AND master_journal.reference NOT LIKE '%Employment%' AND master_journal.reference NOT LIKE '%Compute%' AND master_journal.reference NOT LIKE '%Work Schedule%' AND master_data.pin=master_journal.employee_no AND master_data.employee_no='$pin_no' order by master_journal.seq_no DESC") or die (mysqli_error($con));
+                $hist = mysqli_query($con,"SELECT * FROM master_journal WHERE `change_to` >= 0 AND `change_to` < 10000 AND `reference` NOT LIKE '%Employment%' AND `reference` NOT LIKE '%Compute%' AND `reference` NOT LIKE '%Work Schedule%'  AND `reference` NOT LIKE '%Birth%' AND `employee_no`='$pin' order by `seq_no` DESC") or die (mysqli_error($con));
                     while ($hist_data=mysqli_fetch_array($hist)){
                         $ref=$hist_data['reference'];
                         $from=$hist_data['change_from'];
@@ -282,8 +300,8 @@ function save_rate(){
             dataType: "json",
             success: function (jObject){
                 if (jObject.status === "success"){
-                    w2alert("Changes Saved");
-                    $('#rate_remarks').val('');
+                    w2alert(jObject.message);
+                    $('#grid').load('modules/employee_rate_maint.php?emp_no=100'+ $('#emp_no').val() +"&&cmd=edit");
                     w2utils.unlock(div);
                 }else{
                     w2alert(jObject.message);
@@ -316,8 +334,8 @@ function save_employment(){
             dataType: "json",
             success: function (jObject){
                 if (jObject.status === "success"){
-                    w2alert("Employment Status Changes Saved!");
-                    $('#remarks').val('');
+                    w2alert(jObject.message);
+                    $('#grid').load('modules/employee_rate_maint.php?emp_no=100'+ $('#emp_no').val() +"&&cmd=edit");
                     w2utils.unlock(div);
                 }else{
                     w2alert(jObject.message);

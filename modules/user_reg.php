@@ -1,13 +1,20 @@
 <?php
 $program_code = 8;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+if (substr($access_rights, 6, 2) !== "B+") {
+  echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+  return;
+}
 ?>
 <div class="w3-responsive w3-mobile w3-margin-top">
     <div id="user_maint" class="w3-round-large" style="width: 100%; height: 450px;"></div>
 </div>
 <script type="text/javascript">
 
-    var levels = ['1','2','3','4','5','6','7','9'];
+    var levels = ['2','3','5','7','8','9'];
 
     const src = "page/new_user";
 

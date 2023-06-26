@@ -1,7 +1,19 @@
 <?php
-$program_code = 3;
+$program_code = 27;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-col l12 m12 s12 w3-responsive w3-mobile w3-row w3-padding-top" style="overflow-y: scroll;">
     <input name="group" type="list" class="w3-small" id="group" style="width: 250px;" />
@@ -117,14 +129,19 @@ require_once('../common/functions.php');
                 new: _new
             },
             success: function(data) {
-                if(data=="1"){
-                    get_emp_log(_pin);
+                if (data !== "") {
+                    var _return = jQuery.parseJSON(data);
+                    if (_return.status === "success") {
+                        get_emp_log(_pin);
+                    }else{
+                        w2alert(_return.message);
+                    }
                 }else{
-                    w2alert(data);
+                    w2alert("Sorry, There was a problem in server connection!");
                 }
             },
             error: function() {
-                alert("Sorry, there was a problem in server connection!");
+                w2alert("Sorry, there was a problem in server connection!");
             }
         });
     }
@@ -142,8 +159,15 @@ require_once('../common/functions.php');
                 new: _new
             },
             success: function(data) {
-                if(data=="1"){
-                    get_emp_log(_pin);
+                if (data !== "") {
+                    var _return = jQuery.parseJSON(data);
+                    if (_return.status === "success") {
+                        get_emp_log(_pin);
+                    }else{
+                        w2alert(_return.message);
+                    }
+                }else{
+                    w2alert("Sorry, There was a problem in server connection!");
                 }
             },
             error: function() {

@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 3;
+$program_code = 13;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-panel w3-border w3-card-4 w3-round-large w3-padding" id="timelog">
     <div class="w3-bar">
@@ -16,8 +28,10 @@ require_once('../common/functions.php');
             <button class="w2ui-btn w3-hide" id="gen_time" onclick="generate_time_credit()"><i class="fa fa-refresh" aria-hidden="true"></i>GENERATE</button>
             <button class="w2ui-btn" id="get_data" onclick="extact_data()"><i class="fa fa-cloud-download" aria-hidden="true"></i>
                 GET</button>
+            <?php if (substr($access_rights, 0, 6) === "A+E+D+") { ?>
             <button class="w2ui-btn" id="regen_time" onclick="regenerate()"><i class="fa fa-refresh" aria-hidden="true"></i>
                 REGENERATE TIME</button>
+            <?php } ?>
             <button class="w2ui-btn w3-hide" id="cancel" onclick="cancel()"><i class="fa fa-ban" aria-hidden="true"></i>
                 CANCEL</button>
             <i class="fa-spin fa-solid fa-spinner w3-hide" id="spinner"></i>&nbsp;<span class="w3-small" id="wait"></span>

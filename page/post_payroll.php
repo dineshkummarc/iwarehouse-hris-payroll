@@ -1,12 +1,21 @@
 <?php
-
-$program_code = 5;
-include('../common/functions.php');
-
+$program_code = 16;
+include("../function/sysconfig.php");
+require_once('../common/functions.php');
 include("../common_function.class.php");
 $cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 0, 6) !== "A+E+D+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 
-include("../function/sysconfig.php");
 
 $payroll_days = sysconfig("payroll_days");
 $user_id = $session_name;

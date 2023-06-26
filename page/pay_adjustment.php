@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 3;
+$program_code = 30;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_REQUEST["cmd"]) {
     case "get-adjust-default":
         get_adjust_default();
@@ -12,53 +24,85 @@ switch ($_REQUEST["cmd"]) {
         get_emp_no($emp_no);
     break;
     case "save-emp-adjustment":
-        $credit = number_format($_POST["credit"], 2, '.', '');
-        $emp_no = $_POST["emp_no"];
-        $pay_type = $_POST["pay_type"];
-        $user_id = $_SESSION['name'];
-        $station_id = $_SERVER['REMOTE_ADDR'];
-
-        $pay_amount = 0;
-        $total = "0.00";
-        $master = mysqli_query($con,"SELECT * FROM `master_data` WHERE `employee_no`='$emp_no'");
-        $payroll_type = mysqli_query($con,"SELECT * FROM `payroll_type` WHERE `payroll_type_no`='$pay_type'");
-        if (@mysqli_num_rows($master) AND @mysqli_num_rows($payroll_type)) {
-            $master_data = mysqli_fetch_array($master);
-            $payroll_type_data = mysqli_fetch_array($payroll_type);
-            $master_id_data = mysqli_fetch_array(mysqli_query($con,"SELECT * FROM `master_id` WHERE `employee_no`='$master_data[employee_no]'"));
-            $payroll_group_data = mysqli_fetch_array(mysqli_query($con,"SELECT * FROM `payroll_group` WHERE `group_name`='$master_id_data[pay_group]'"));
-            $payroll_date = $payroll_group_data["payroll_date"];
-            if ($payroll_type_data["is_factor_to_payrate"]) {
-                $master_rate_data = mysqli_fetch_array(mysqli_query($con,"SELECT * FROM `employee_rate` WHERE `employee_no`='$emp_no'"));
-                $pay_amount = number_format($master_rate_data["daily_rate"] / 8 * $credit * $payroll_type_data["factor_amount"], 2, '.', '');
-            } else {
-                $pay_amount = $credit;
-                if (number_format($pay_type, 0, '.', '') === number_format(get_paytype13th(), 0, '.', '')) {
-                    $pay_amount = number_format($credit / 12, 2, '.', '');
-                }
-            }
-            $payroll_adjustment = mysqli_query($con,"SELECT * FROM `payroll_adjustment` WHERE `employee_no`='$emp_no' AND `payroll_date`='$payroll_date' AND `payroll_type_no`='$pay_type'");
-            if (@mysqli_num_rows($payroll_adjustment)) {
-                mysqli_query($con,"UPDATE `payroll_adjustment` SET `credit`='$credit', `pay_amount`='$pay_amount', `user_id`='$user_id', `station_id`='$station_id' WHERE `employee_no`='$emp_no' AND `payroll_date`='$payroll_date' AND `payroll_type_no`='$pay_type'");
-            } else {
-                mysqli_query($con,"INSERT INTO `payroll_adjustment` (`employee_no`, `payroll_date`, `payroll_type_no`, `credit`, `pay_amount`, `user_id`, `station_id`) VALUES ('$emp_no', '$payroll_date', '$pay_type', '$credit', '$pay_amount', '$user_id', '$station_id')");
-            }
-            $payroll_adjustment_data = mysqli_fetch_array(mysqli_query($con,"SELECT SUM(`pay_amount`) AS `pay_amount` FROM `payroll_adjustment` WHERE `employee_no`='$emp_no' AND `payroll_date`='$payroll_date'"));
-            $total = number_format($payroll_adjustment_data["pay_amount"], 2);
-            ?>
-            <input type="hidden" id="credit_adj" value="<?php echo number_format($pay_amount, 2); ?>" />
-            <input type="hidden" id="total_adj" value="<?php echo $total; ?>" />
-            <?php
-        } else {
-            echo "1";
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            $record = array("credit" => number_format($_POST["credit"], 2, '.', ''), "emp_no" => $_POST["emp_no"], "pay_type" => $_POST["pay_type"],  );
+            save_emp_adjustment($record);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
         }
     break;
     case "del-emp-adjustment":
-        $emp_no = $_POST["emp_no"];
-        $pay_type = $_POST["pay_type"];
-        delete_adjustment($emp_no,$pay_type);
+        if (substr($access_rights, 4, 2) === "D+") {
+            $emp_no = $_POST["emp_no"];
+            $pay_type = $_POST["pay_type"];
+            delete_adjustment($emp_no,$pay_type);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     
+}
+
+function save_emp_adjustment($record){
+    global $db, $db_hris;
+
+    $pay_amount = 0;
+    //$total = "0.00";
+    $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `employee_no`=:emp_no AND !`is_inactive`");
+    $master->execute(array(":emp_no" => $record["emp_no"]));
+    $payroll_type = $db->prepare("SELECT * FROM `payroll_type` WHERE `payroll_type_no`=:pay_type");
+    $payroll_type->execute(array(":pay_type" => $record["pay_type"]));
+    if ($master->rowCount() AND $payroll_type->rowCount()) {
+        $master_data = $master->fetch(PDO::FETCH_ASSOC);
+        $payroll_type_data = $payroll_type->fetch(PDO::FETCH_ASSOC);
+        $master_id = $db->prepare("SELECT * FROM $db_hris.`master_id` WHERE `employee_no`=:emp_no");
+        $master_id->execute(array(":emp_no" => $master_data['employee_no']));
+        if($master_id->rowCount()){
+            $master_id_data = $master_id->fetch(PDO::FETCH_ASSOC);
+            $payroll_group = $db->prepare("SELECT * FROM $db_hris.`payroll_group` WHERE `group_name`=:pay_group");
+            $payroll_group->execute(array(":pay_group" => $master_id_data['pay_group']));
+            if($payroll_group->rowCount()){
+                $payroll_group_data = $payroll_group->fetch(PDO::FETCH_ASSOC);
+                $payroll_date = $payroll_group_data["payroll_date"];
+                if ($payroll_type_data["is_factor_to_payrate"]) {
+                    $master_rate = $db->prepare("SELECT * FROM $db_hris.`employee_rate` WHERE `employee_no`=:emp_no");
+                    $master_rate->execute(array(":emp_no" => $record["emp_no"]));
+                    if($master_rate->rowCount()){
+                        $master_rate_data = $master_rate->fetch(PDO::FETCH_ASSOC);
+                        $pay_amount = number_format($master_rate_data["daily_rate"] / 8 * $record["credit"] * $payroll_type_data["factor_amount"], 2, '.', '');
+                    }
+                } else {
+                    $pay_amount = $record["credit"];
+                    if (number_format($record["pay_type"], 0, '.', '') === number_format(get_paytype13th(), 0, '.', '')) {
+                        $pay_amount = number_format($record["credit"] / 12, 2, '.', '');
+                    }
+                }
+                $payroll_adjustment = $db->prepare("SELECT * FROM $db_hris.`payroll_adjustment` WHERE `employee_no`=:emp_no AND `payroll_date`=:pay_date AND `payroll_type_no`=:ptype");
+                $payroll_adjustment->execute(array(":emp_no" => $record["emp_no"], ":pay_date" => $payroll_date, ":ptype" => $record["pay_type"]));
+                if ($payroll_adjustment->rowCount()) {
+                    $adjustment = $db->prepare("UPDATE $db_hris.`payroll_adjustment` SET `credit`=:credit, `pay_amount`=:pay_amount , `user_id`=:uid, `station_id`=:station WHERE `employee_no`=:emp_no AND `payroll_date`=:pdate AND `payroll_type_no`=:ptype");
+                    $adjustment->execute(array(":credit" => $record["credit"], ":pay_amount" => $pay_amount, ":uid" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR'], ":emp_no" => $record["emp_no"], ":pdate" => $payroll_date, ":ptype" => $record['pay_type']));
+                } else {
+                    $adjustment = $db->prepare("INSERT INTO $db_hris.`payroll_adjustment` (`employee_no`, `payroll_date`, `payroll_type_no`, `credit`, `pay_amount`, `user_id`, `station_id`) VALUES (:emp_no, :pdate, :ptype, :credit, :pay_amount, :uid, :station)");
+                    $adjustment->execute(array(":emp_no" => $record["emp_no"], ":pdate" => $payroll_date, ":ptype" => $record['pay_type'], ":credit" => $record["credit"], ":pay_amount" => $pay_amount, ":uid" => $_SESSION['name'], ":station" => $_SERVER['REMOTE_ADDR']));
+                }
+                $payroll_adjustment_data = $db->prepare("SELECT SUM(`pay_amount`) AS `pay_amount` FROM $db_hris.`payroll_adjustment` WHERE `employee_no`=:emp_no AND `payroll_date`=:pdate");
+                $payroll_adjustment_data->execute(array(":emp_no" => $record["emp_no"], ":pdate" => $payroll_date));
+                if($payroll_adjustment_data->rowCount()){
+                    $_adjustment_data = $payroll_adjustment_data->fetch(PDO::FETCH_ASSOC);
+                    /*$total = number_format($_adjustment_data["pay_amount"], 2); ?>
+                    <input type="hidden" id="credit_adj" value="<?php echo number_format($pay_amount, 2); ?>" />
+                    <input type="hidden" id="total_adj" value="<?php echo $total; ?>" />
+                    <?php */
+                    echo json_encode(array("status" => "success"));
+                }
+            }else{
+                echo json_encode(array("status" => "error", "message" => "Invalid Transaction Entered!"));
+            }
+        }
+    }
 }
 
 function delete_adjustment($emp_no,$pay_type){
@@ -66,8 +110,11 @@ function delete_adjustment($emp_no,$pay_type){
 
     $del_adj = $db->prepare("DELETE FROM $db_hris.`payroll_adjustment` WHERE `payroll_type_no`=:pay_type AND `employee_no`=:emp_no");
     $del_adj->execute(array(":pay_type" => $pay_type, ":emp_no" => $emp_no));
-
-    echo "success";
+    if($del_adj->rowCount()){
+        echo json_encode(array("status" => "success"));
+    }else{
+        echo json_encode(array("status" => "error", "message" => $del_adj->errorInfo()));
+    }
 }
 
 function get_paytype13th() {
@@ -133,7 +180,7 @@ function get_emp_no($emp_no){
             <tfoot>
                 <tr class="total">
                     <td colspan="3" style="text-align: center"><b>TOTAL</b></td>
-                    <td style="text-align: right"><b><span data-rate="<?php if(@mysqli_num_rows($employee_rate))echo number_format($employee_rate_data["daily_rate"]/8.00,2); else echo "0"; ?>" id="total_amount"><?php echo number_format($total,2); ?></span></b></td>
+                    <td style="text-align: right"><b><span data-rate="<?php if(@mysqli_num_rows($employee_rate))echo number_format($employee_rate_data["daily_rate"]/8.00,2); else echo "0"; ?>" id="total_amount"><?php echo number_format($total, 2); ?></span></b></td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -242,28 +289,38 @@ function get_adjust_default(){ ?>
         var _emp_no = $(this).data("empno");
         var _credit = $("#"+$(this).data("type")).val();
         var _type = $(this).data("type");
+        $('.credit').removeClass('w3-border-red');
         //console.table(_emp_no,_credit,_type);
-        $.ajax({
-            url: src,
-            type: "POST",
-            data: {
-                cmd: "save-emp-adjustment",
-                emp_no: _emp_no,
-                pay_type: _type,
-                credit: _credit
-            },
-            success: function(data) {
-                if(data=="1"){
-                    w2alert("Invalid Transaction Entered!");
-                }else{
-                    w2alert("Adjustment Saved!");
-                    $("#get_emp").click();
+        if(_credit == ""){
+            $("#"+$(this).data("type")).focus().addClass('w3-border-red');
+        }else{
+            $.ajax({
+                url: src,
+                type: "POST",
+                data: {
+                    cmd: "save-emp-adjustment",
+                    emp_no: _emp_no,
+                    pay_type: _type,
+                    credit: _credit
+                },
+                success: function(data) {
+                    if(data !==""){
+                        var _response = jQuery.parseJSON(data);
+                        if (_response.status === "success") {
+                            w2alert("Adjustment Saved!");
+                            $("#get_emp").click();
+                        }else{
+                            w2alert(_response.message);
+                        }
+                    }else{
+                        w2alert("Sorry, There was a problem in server connection!");
+                    }
+                },
+                error: function() {
+                    w2alert("Sorry, there was a problem in server connection!");
                 }
-            },
-            error: function() {
-                w2alert("Sorry, there was a problem in server connection!");
-            }
-        });
+            });
+        }
     }
 
     function del_adjustment(){
@@ -281,10 +338,15 @@ function get_adjust_default(){ ?>
                         pay_type: _type
                     },
                     success: function(data) {
-                        if(data=="success"){
-                            $("#get_emp").click();
+                        if(data !==""){
+                            var _response = jQuery.parseJSON(data);
+                            if (_response.status === "success") {
+                                $("#get_emp").click();
+                            }else{
+                                w2alert(_response.message);
+                            }
                         }else{
-                            w2alert("Error Deleting Adjustment!");
+                            w2alert("Sorry, There was a problem in server connection!");
                         }
                     },
                     error: function() {

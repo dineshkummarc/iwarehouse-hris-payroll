@@ -1,22 +1,34 @@
 <?php
 
-$program_code = 3;
+$program_code = 12;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile" id="att_div">
     <div id="att_toolbar" style="padding: 3px;"></div>
-    <div id="att_grid" style="width: 100%; height: 500px;"></div>
+    <div id="att_grid" style="width: 100%; height: 450px;"></div>
 </div>
 <script type="text/javascript">
 
 $(document).ready(function(){
-    var c = $("div#att_div");
-    var h = window.innerHeight - 100;
+    var c = $("div#att_grid");
+    var h = window.innerHeight - 200;
     c.css("height", h);
     setTimeout(function(){
         get_default_log();
-   }, 300);
+   }, 100);
 });
 
 var employee_list;
@@ -264,7 +276,7 @@ function new_attendance () {
 }
 
 function getBack(){
-    get_default();
+    dashboard();
 }
 
 function save_manual_time(){
@@ -305,13 +317,13 @@ function save_manual_time(){
 }
 
 function get_att(){
-    w2ui['att_toolbar'].hide('get_att_log');
-    w2ui['att_toolbar'].hide('break');
-    w2ui['att_grid'].lock('Please wait..', true);
     let fdate = $(":input#fdate").val();
     if(fdate == ""){
         w2alert("Please select date from!");
     }else{
+        w2ui['att_toolbar'].hide('get_att_log');
+        w2ui['att_toolbar'].hide('break');
+        w2ui['att_grid'].lock('Please wait..', true);
         $.ajax({
             url: src,
             type: "post",
@@ -337,6 +349,7 @@ function get_att(){
                     w2ui['att_toolbar'].show('break');
                     w2ui['att_toolbar'].show('fdate');
                     w2ui['att_grid'].unlock();
+                    get_default_log();
                 }
             },
             error: function (){
@@ -417,6 +430,7 @@ function get_default_log(){
                 w2ui['att_toolbar'].show('confirm_log');
                 w2ui['att_toolbar'].show('break');
                 w2ui['att_toolbar'].hide('fdate');
+                $(":input#fdate").w2field("date");
             }
         },
         error: function (){

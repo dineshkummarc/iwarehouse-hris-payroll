@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 1;
+$program_code = 32;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+};
 ?>
 <div class="w3-row" style="width: 100%;">
     <div class="w3-third w3-container">
@@ -93,7 +105,7 @@ require_once('../common/functions.php');
                         $('input#name').val(_return.fname);
                         w2utils.unlock(div);
                     }else{
-                        w2alert("Sorry, No DATA found!");
+                        w2alert(_return.message);
                         w2utils.unlock(div);
                     }
                 }
@@ -128,14 +140,20 @@ require_once('../common/functions.php');
             },
             success: function(data){
                 w2utils.unlock(div);
-                $('input#user_pass').val('');
-                $('input#user_pass1').val('');
-                $('input#user_pass2').val('');
                 var jObject = jQuery.parseJSON(data);
                 if (jObject.status == "success") {
+                    $('input#user_pass').val('');
+                    $('input#user_pass1').val('');
+                    $('input#user_pass2').val('');
+                    $("#passwordmatch").html("");
+                    $('#passwordstrength').html("");
                     w2alert(jObject.message);
                 }else{
                     w2alert(jObject.message);
+                    $('input#user_pass1').val('');
+                    $('input#user_pass2').val('');
+                    $("#passwordmatch").html("");
+                    $('#passwordstrength').html("");
                 }
             },
             error: function () {

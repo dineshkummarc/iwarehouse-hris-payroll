@@ -1,22 +1,42 @@
 <?php
 
-$program_code = 7;
+$program_code = 17;
 require_once('../common/functions.php');
-
 include("../common_function.class.php");
 $cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 
 
 switch ($_REQUEST["cmd"]) {
     case "generate":
-        generate($_REQUEST["datef"], $_REQUEST["datet"]);
-        break;
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            generate($_REQUEST["datef"], $_REQUEST["datet"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+    break;
     case "get-records":
         get_records();
-        break;
+    break;
     case "post_to_payroll":
-        make_trans();
-        break;
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            make_trans();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+    break;
 }
 
 function get_year() {
@@ -93,7 +113,7 @@ function get_records(){
         }
         echo json_encode(array("status" => "success", "total" => count($records), "records" => $records));
     } else {
-        echo json_encode(array("status" => "error", "message" => "no records extracted"));
+        echo json_encode(array("status" => "error", "message" => "No Generated 13th Month records"));
     }
 }
 

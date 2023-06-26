@@ -1,24 +1,48 @@
 <?php
 
-$program_code = 3;
-
+$program_code = 31;
 require_once('../common/functions.php');
 include("../common_function.class.php");
 $cfn = new common_functions();
-
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_REQUEST["cmd"]) {
   case "remove-attendee":
-    remove_attendee($_POST["df"], $_POST["dt"], $_POST["record"]);
+    if (substr($access_rights, 4, 2) === "D+") {
+      remove_attendee($_POST["df"], $_POST["dt"], $_POST["record"]);
+    }else{
+      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+      return;
+    }
     break;
   case "add-attendee":
-    add_attendee($_POST["df"], $_POST["dt"], $_POST["name"]);
+    if (substr($access_rights, 0, 2) === "A+") {
+      add_attendee($_POST["df"], $_POST["dt"], $_POST["name"]);
+    }else{
+      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+      return;
+    }
     break;
   case "attendee":
     echo json_encode(array("status" => "success", "records" => get_enrolled(), "attendee" => get_name()));
     break;
   case "plot":
-    $data = get_attendance($_POST["df"], $_POST["dt"]);
-    echo json_encode(array("status" => "success", "records" => $data["records"], "columns" => $data["columns"]));
+    if (substr($access_rights, 8, 2) === "P+") {
+      $data = get_attendance($_POST["df"], $_POST["dt"]);
+      echo json_encode(array("status" => "success", "records" => $data["records"], "columns" => $data["columns"]));
+    }else{
+      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+      return;
+    }
     break;
 }
 //remove selected attendee

@@ -1,10 +1,20 @@
 <?php
 
-$program_code = 5;
+$program_code = 16;
 require_once('../common/functions.php');
-
 include("../common_function.class.php");
 $cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 
 $group_no = $_GET["_group"];
 $store = $_GET["_store"];
@@ -23,7 +33,10 @@ if (@mysqli_num_rows($payroll_group)) {
     $deduction= mysqli_query($con,$deduction_query);
     ?>
 <span class="w3-padding"><b>Date: <?php echo date("F j".", "."Y"); ?></b></span>
-<span class="w3-padding w3-right w3-small"><button class="w3-button w3-silver w3-border w3-round-medium w3-hover-silver" onclick="exportExcel()">Export Excel</button></span></br>
+<span class="w3-padding w3-right w3-small">
+  <?php if (substr($access_rights, 8, 2) === "P+") { ?>
+    <button class="w3-button w3-silver w3-border w3-round-medium w3-hover-silver" onclick="exportExcel()">Export Excel</button>
+  <?php } ?></span></br>
 <span class="w3-padding"><b>Payroll Period: <?php $from = date("F j",strtotime($log_cutoff)); $to = date("F j".", "."Y",strtotime($payroll_cutoff)); echo $from." - ".$to; ?></b></span>
 <table class="w3-table-all w3-small">
   <thead>
@@ -31,6 +44,7 @@ if (@mysqli_num_rows($payroll_group)) {
       <th></th>
       <th></th>
       <th></th>
+      <th style="width: 80px;"></th>
       <th colspan="<?php echo @mysqli_num_rows($payroll_type)+1; ?>" class="w3-center w3-border">PAYROLL EARNINGS</th>
       <th colspan="<?php echo @mysqli_num_rows($deduction)+1; ?>" class="w3-center w3-border">PAYROLL DEDUCTION</th>
       <th></th>
@@ -39,6 +53,7 @@ if (@mysqli_num_rows($payroll_group)) {
       <th></th>
       <th class="w3-center w3-border">PIN</th>
       <th class="w3-center w3-border">NAME</th>
+      <th>No. of Days</th>
       <?php
       while($payroll_type_data= mysqli_fetch_array($payroll_type)){ ?>
       <th class="w3-center w3-border"><?php echo $payroll_type_data["pay_type"]; ?></th>
@@ -64,6 +79,24 @@ if (@mysqli_num_rows($payroll_group)) {
       <td><?php echo number_format(++$cnt); ?></td>
       <td class="w3-center w3-border"><?php echo $payroll_trans_data["pin"]; ?></td>
       <td><?php echo $payroll_trans_data["family_name"] . ", " . $payroll_trans_data["given_name"] . " " . substr($payroll_trans_data["middle_name"], 0, 1); ?></td>
+      <?php
+      $payroll_trans_pay1 =  mysqli_query($con, "SELECT * FROM `payroll_trans_pay` WHERE `payroll_trans_pay`.`employee_no`='$payroll_trans_data[employee_no]' AND `payroll_trans_pay`.`payroll_date`='$payroll_date' ORDER BY `payroll_trans_pay`.`payroll_type_no`"); ?>
+      <td class="w3-border" style="text-align: right; width: auto;">
+        <?php if(@mysqli_num_rows($payroll_trans_pay1)){
+          $payroll_trans_pay_data1= mysqli_fetch_array($payroll_trans_pay1);
+          if (number_format($payroll_trans_pay_data1["credit"],2) > number_format(8,2)) {
+
+            $days = floor($payroll_trans_pay_data1["credit"] / 8);
+            $remainingHours = $payroll_trans_pay_data1["credit"] % 8;
+
+            $no_days = $remainingHours === "" ? $days : $days.".".$remainingHours;
+          }else{
+            $no_days = $payroll_trans_pay_data1["credit"]." Hrs";
+          }
+          echo $no_days;
+        }
+        ?>
+      </td>
       <?php
       $total = 0;
       $payroll_type= mysqli_query($con,$payroll_type_query);
@@ -102,7 +135,7 @@ if (@mysqli_num_rows($payroll_group)) {
   </tbody>
   <tfoot>
       <tr>
-        <th colspan="3"  style="text-align: right;" class="w3-border w3-text-blue">GRAND TOTAL</th>
+        <th colspan="4"  style="text-align: right;" class="w3-border w3-text-blue">GRAND TOTAL</th>
         <th style="text-align: right;" class="w3-border w3-text-blue" colspan="<?php echo @mysqli_num_rows($payroll_type)+1; ?>"><?php echo number_format($payroll_trans_data["gross_pay"], 2); ?></th>
         <?php
           $total_deduction = $payroll_trans_data["deduction"];

@@ -1,9 +1,21 @@
 <?php
 
-$program_code = 1;
+$program_code = 19;
 require_once('../common/functions.php');
 include '../common/master_journal.php';
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_POST["cmd"]) {
     case "get-employee":
         get_employee();
@@ -12,7 +24,12 @@ switch ($_POST["cmd"]) {
         get_employee_deductions($_POST["pin"]);
     break;
     case "edit-bal":
-        edit_bal(array("empno" => $_POST["empno"], "ded_no" => $_POST["ded_no"], "rem" => $_POST["rem"], "amount" => $_POST["amount"]));
+        if (substr($access_rights, 2, 4) === "E+D+") {
+            edit_bal(array("empno" => $_POST["empno"], "ded_no" => $_POST["ded_no"], "rem" => $_POST["rem"], "amount" => $_POST["amount"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-emp-ded":
         $emp_no = $_POST["emp_no"];
@@ -80,17 +97,27 @@ switch ($_POST["cmd"]) {
         get_ded_data(array("eno" => $_POST["eno"], "ded_no" => $_POST["ded_no"]));
     break;
     case "new-deductions":
-        $ded_no = $_POST['ded_no'];
-        $emp_no = $_POST['emp_no'];
-        $ded_bal = $_POST['ded_bal'];
-        $ded_amt = $_POST['ded_amt'];
-        new_deductions($ded_no,$emp_no,$ded_bal,$ded_amt);
+        if (substr($access_rights, 0, 2) === "A+") {
+            $ded_no = $_POST['ded_no'];
+            $emp_no = $_POST['emp_no'];
+            $ded_bal = $_POST['ded_bal'];
+            $ded_amt = $_POST['ded_amt'];
+            new_deductions($ded_no,$emp_no,$ded_bal,$ded_amt);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-default-ded":
         get_default_emp_ded();
     break;
     case "show-all-emp-ded":
-        show_all_emp_ded();
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            show_all_emp_ded();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 }
 
@@ -103,9 +130,15 @@ function edit_bal($record){
         $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_balance`=`deduction_balance`-:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:empno AND `deduction_no`=:ded_no");
         $update_ded->execute(array(":empno" => $record["empno"], ":ded_bal" => $record["amount"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["ded_no"]));
         if($update_ded->rowCount()){
+            $emp_deductions_data = $emp_deductions->fetch(PDO::FETCH_ASSOC);
+            $new_bal = $emp_deductions_data['deduction_balance'] - $record["amount"];
             $emp_ledger = $db->prepare("INSERT INTO $db_hris.`employee_deduction_ledger`(`employee_no`, `deduction_no`, `trans_date`, `amount`, `balance`, `remark`, `reference`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :date, :ded_amt, :ded_bal, :remark, :ref, :uid, :ip)");
-            $emp_ledger->execute(array(":emp_no" => $record["empno"], ":ded_no" => $record["ded_no"], ":date" => date('Y-m-d'), ":ded_amt" => '0', ":ded_bal" => $record["amount"], ":remark" => "Cancel: ".$record["rem"], ":ref" => "DEBIT MEMO", ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
-            echo json_encode(array("status" => "success"));
+            $emp_ledger->execute(array(":emp_no" => $record["empno"], ":ded_no" => $record["ded_no"], ":date" => date('Y-m-d'), ":ded_amt" => "-".$record["amount"], ":ded_bal" => $new_bal, ":remark" => "Cancel: ".$record["rem"], ":ref" => "DEBIT MEMO", ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
+            if($emp_ledger->rowCount()){
+                echo json_encode(array("status" => "success"));
+            }else{
+                echo json_encode(array("status" => "error", "e" => $emp_ledger->errorInfo()));
+            }
         }else{
             echo json_encode(array("status" => "error", "e" => $update_ded->errorInfo()));
         }
@@ -545,13 +578,10 @@ function get_default_emp_ded(){ ?>
         var ded_bal = $('#emp_ded_bal').val();
         var ded_amt = $('#emp_ded_amt').val();
         var ded_total = $('#emp_ded_total').val();
-        var ded_bal1 = parseInt(ded_bal);
-        var ded_bal2 = parseInt(ded_total);
-        var total = ded_bal1+ded_bal2;
-        if(ded_amt >= total){
-            w2alert('Invalid Deduction Amount!');
+        var total = Number(ded_bal) + Number(ded_total);
+        if(ded_amt > total){
+            w2alert('Invalid Deduction Amount! Balance ('+total+') is less than Deduction Amout ('+ded_amt+')');
         }else{
-            $('div#emp_deduction').addClass("w3-hide");
             $.ajax({
                 url: src,
                 type: "post",
@@ -563,10 +593,19 @@ function get_default_emp_ded(){ ?>
                     ded_amt : ded_amt
                 },
                 success: function (data){
-                    get_emp();
+                    if (data !== ""){
+                        var _return = jQuery.parseJSON(data);
+                        if(_return.status === "success"){
+                            $('div#emp_deduction').addClass("w3-hide");
+                            $('div#deduction_ledger').addClass("w3-hide");
+                            get_emp();
+                        }else{
+                            w2alert(_return.message);
+                        }
+                    }
                 },
                 error: function () {
-                    w2alert("Sorry, there was a problem in server connection or Session Expired!");
+                    w2alert("Sorry, There was a problem in server connection or Session Expired!");
                 }
             });
         }
@@ -606,7 +645,6 @@ function insert_ledger($ded_no,$emp_no,$ded_bal,$ded_amt){
         $emp_ledger = $db->prepare("INSERT INTO $db_hris.`employee_deduction_ledger`(`employee_no`, `deduction_no`, `trans_date`, `amount`, `balance`, `remark`, `reference`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :date, :ded_amt, :ded_bal, :remark, :ref, :uid, :ip)");
         $emp_ledger->execute(array(":emp_no" => $emp_no, ":ded_no" => $ded_no, ":date" => date('Y-m-d'), ":ded_amt" => $ded_amt, ":ded_bal" => $ded_bal, ":remark" => $remark, ":ref" => $ref, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR']));
     }
-    echo json_encode(array("status" => "success")); 
 }
 
 function get_emp_ledger($emp_no,$ded_no){
@@ -646,8 +684,8 @@ function get_emp_ledger($emp_no,$ded_no){
             <tr id="<?php echo $ledger_data["ledger_no"]; ?>" style="cursor: pointer;" class="w3-hover-orange w3-hover-text-white">
                 <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$ledger_data["ledger_no"].'</span>'; else echo $ledger_data["ledger_no"]; ?></td>
                 <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$ledger_data["trans_date"].'</span>'; else echo $ledger_data["trans_date"]; ?></td>
-                <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">-'.$deduction_amount.'</span>'; else echo $deduction_amount; ?></td>
-                <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">-'.$deduction_balance.'</span>'; else echo $deduction_balance; ?></td>
+                <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$deduction_amount.'</span>'; else echo $deduction_amount; ?></td>
+                <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$deduction_balance.'</span>'; else echo $deduction_balance; ?></td>
                 <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$ledger_data["remark"].'</span>'; else echo $ledger_data["remark"]; ?></td>
                 <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$ledger_data["reference"].'</span>'; else echo $ledger_data["reference"]; ?></td>
                 <td><?php if(strpos($ledger_data["remark"], "Cancel") !== false ) echo '<span class="w3-text-red">'.$ledger_data["user_id"].'</span>'; else echo $ledger_data["user_id"]; ?></td>
@@ -702,7 +740,7 @@ function new_emp_ded($ded_no,$emp_no) {
 function get_employee() {
     global $db, $db_hris;
 
-    $emp_list = $db->prepare("SELECT `master_data`.`employee_no`,`master_data`.`pin`,`master_data`.`given_name`,`master_data`.`middle_name`,`master_data`.`family_name` FROM $db_hris.`master_data` ORDER BY `master_data`.`family_name`");
+    $emp_list = $db->prepare("SELECT `master_data`.`employee_no`,`master_data`.`pin`,`master_data`.`given_name`,`master_data`.`middle_name`,`master_data`.`family_name` FROM $db_hris.`master_data` WHERE !`is_inactive` ORDER BY `master_data`.`family_name`");
     $employee_list = array();
     $emp_list->execute();
     if ($emp_list->rowCount()) {

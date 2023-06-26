@@ -1,31 +1,58 @@
 <?php
 
-$program_code = 3;
+$program_code = 18;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 switch ($_POST["cmd"]) {
     case "get_ded_data":
         $ded_id = $_POST["ded_id"];
         get_ded_data($ded_id);
     break;
     case "add_ded_data":
-        $ded_id = $_POST["ded_id"];
-        $ded_name = $_POST["ded_name"];
-        $type = $_POST["ded_type"];
-        $sched = $_POST["ded_sched"];
-        save_deduction($ded_id,$ded_name,$type,$sched);
+        if (substr($access_rights, 0, 4) === "A+E+") {
+            $ded_id = $_POST["ded_id"];
+            $ded_name = $_POST["ded_name"];
+            $type = $_POST["ded_type"];
+            $sched = $_POST["ded_sched"];
+            save_deduction($ded_id,$ded_name,$type,$sched);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "new_group":
-        $group_name = $_POST["group_name"];
-        $payroll_date = $_POST["payroll_date"];
-        $cuttoff_date = $_POST["cuttoff_date"];
-        new_group($group_name,$payroll_date,$cuttoff_date);
+        if (substr($access_rights, 0, 2) === "A+") {
+            $group_name = $_POST["group_name"];
+            $payroll_date = $_POST["payroll_date"];
+            $cuttoff_date = $_POST["cuttoff_date"];
+            new_group($group_name,$payroll_date,$cuttoff_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "update_group":
-        $pay_group_code = $_POST["pay_group_code"];
-        $payroll_date = $_POST["payroll_date"];
-        $cuttoff_date = $_POST["cuttoff_date"];
-        update_group($pay_group_code,$payroll_date,$cuttoff_date);
+        if (substr($access_rights, 2, 2) === "E+") {
+            $pay_group_code = $_POST["pay_group_code"];
+            $payroll_date = $_POST["payroll_date"];
+            $cuttoff_date = $_POST["cuttoff_date"];
+            update_group($pay_group_code,$payroll_date,$cuttoff_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 }
 

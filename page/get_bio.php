@@ -1,94 +1,177 @@
 <?php
 
-$program_code = 2;
-
+$program_code_ot = 22;
+$program_code_att = 12;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights_att = $cfn->get_user_rights($program_code_att);
+$plevel_att = $cfn->get_program_level($program_code_att);
+$access_rights_ot = $cfn->get_user_rights($program_code_ot);
+$plevel_ot = $cfn->get_program_level($program_code_ot);
+$level = $cfn->get_user_level();
 
 switch ($_POST["cmd"]) {
     case "get-wall-bio":
-        $fdate = $_POST["fdate"];
-        $ndate = (new DateTime($fdate))->format("Y-m-d");
+        if (substr($access_rights_att, 0, 8) === "A+E+D+B+") {
+            if($level <= $plevel_att ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            $fdate = $_POST["fdate"];
+            $ndate = (new DateTime($fdate))->format("Y-m-d");
 
-        require '../common/biometric.php';
+            require '../common/biometric.php';
 
-        $att_log = $zk->getAttendance();
+            $att_log = $zk->getAttendance();
 
-        foreach ($att_log as $key => $data){
-            $uid = $data[1];
-            $date = (new DateTime($data[3]))->format("Y-m-d");
-            $time = (new DateTime($data[3]))->format("H:i:s");
-            $ver = '1';
-            $status = $data[2];
+            foreach ($att_log as $key => $data){
+                $uid = $data[1];
+                $date = (new DateTime($data[3]))->format("Y-m-d");
+                $time = (new DateTime($data[3]))->format("H:i:s");
+                $ver = '1';
+                $status = $data[2];
 
-            if($date >= $ndate){
+                if($date >= $ndate){
 
-                $check=mysqli_query($con, "SELECT * FROM _tmp_imported_att WHERE Date='$date' and _time='$time' and pin='$uid'") or die(mysqli_error($con));
-                $time_row=mysqli_num_rows($check);
-                if($time_row > 0){
-                    $update = mysqli_query($con,"UPDATE _tmp_imported_att SET Status='$status', Date='$date', _time='$time', Verified='$ver' WHERE pin='$uid'");
-                }else{
-                    $filed = mysqli_query($con,"INSERT INTO _tmp_imported_att (pin,Date,_time,Verified,Status,get_by) VALUES ('$uid', '$date','$time','$ver','$status','$session_name')");
+                    $check=mysqli_query($con, "SELECT * FROM _tmp_imported_att WHERE Date='$date' and _time='$time' and pin='$uid'") or die(mysqli_error($con));
+                    $time_row=mysqli_num_rows($check);
+                    if($time_row > 0){
+                        $update = mysqli_query($con,"UPDATE _tmp_imported_att SET Status='$status', Date='$date', _time='$time', Verified='$ver' WHERE pin='$uid'");
+                    }else{
+                        $filed = mysqli_query($con,"INSERT INTO _tmp_imported_att (pin,Date,_time,Verified,Status,get_by) VALUES ('$uid', '$date','$time','$ver','$status','$session_name')");
+                    }
                 }
             }
+            $zk->clearAttendance();
+            $zk->enableDevice();
+            $zk->disconnect();
+            
+            $records = get_imported_time();
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
         }
-        $zk->clearAttendance();
-        $zk->enableDevice();
-        $zk->disconnect();
-        
-        $records = get_imported_time();
-        echo json_encode(array("status" => "success", "records" => $records));
     break;
     case "get-default":
-        $records = get_imported_time();
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights_att, 6, 2) !== "B+") {
+            if($level <= $plevel_att ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $records = get_imported_time();
+            echo json_encode(array("status" => "success", "records" => $records));
+        }
     break;
     case "confirm-bio":
-        confirm_attendance();
+        if (substr($access_rights_att, 0, 8) === "A+E+D+B+") {
+            confirm_attendance();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "delete-bio":
-        delete_imported_attendace();
+        if (substr($access_rights_att, 4, 2) === "D+") {
+            delete_imported_attendace();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-log-type":
-        get_log_type();
+        if (substr($access_rights_att, 6, 2) === "B+") {
+            get_log_type();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "save-manual-att":
-        $emp_no = $_POST["record"]["emp_list"]["id"];
-        $log_type = $_POST["record"]["att_reason"]["id"];
-        $date = $_POST["record"]["att_date"];
-        $time = $_POST["record"]["att_time"];
-        $ndate = (new DateTime($date))->format("Y-m-d");
-        $ntime = (new DateTime($time))->format("H:i:s");
-        save_manual_time($emp_no,$log_type,$ndate,$ntime);
+        if (substr($access_rights_att, 0, 2) === "A+") {
+            $emp_no = $_POST["record"]["emp_list"]["id"];
+            $log_type = $_POST["record"]["att_reason"]["id"];
+            $date = $_POST["record"]["att_date"];
+            $time = $_POST["record"]["att_time"];
+            $ndate = (new DateTime($date))->format("Y-m-d");
+            $ntime = (new DateTime($time))->format("H:i:s");
+            save_manual_time($emp_no,$log_type,$ndate,$ntime);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-ot-data":
-        $records = get_ot_data();
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights_ot, 6, 2) !== "B+") {
+            if($level <= $plevel_ot ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $records = get_ot_data();
+            echo json_encode(array("status" => "success", "records" => $records));
+        }
     break;
     case "get-approve-ot":
-        $records = get_approve_ot();
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights_ot, 6, 2) !== "B+") {
+            if($level <= $plevel_ot ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $records = get_approve_ot();
+            echo json_encode(array("status" => "success", "records" => $records));
+        }
     break;
     case "approve-ot":
-        $emp_no = $_POST['emp_no'];
-        $trans_date = $_POST['trans_date'];
-        $newdate = (new DateTime($trans_date))->format("Y-m-d");
-        $trans_time = $_POST['trans_time'];
-        approve_ot($emp_no,$newdate,$trans_time);
+        if (substr($access_rights_ot, 0, 2) === "A+") {
+            $emp_no = $_POST['emp_no'];
+            $trans_date = $_POST['trans_date'];
+            $newdate = (new DateTime($trans_date))->format("Y-m-d");
+            $trans_time = $_POST['trans_time'];
+            approve_ot($emp_no,$newdate,$trans_time);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "cancel-ot":
-        $emp_no = $_POST['emp_no'];
-        $trans_date = $_POST['date'];
-        $newdate = (new DateTime($trans_date))->format("Y-m-d");
-        cancel_ot($emp_no,$newdate);
+        if (substr($access_rights_ot, 4, 2) === "D+") {
+            $emp_no = $_POST['emp_no'];
+            $trans_date = $_POST['date'];
+            $newdate = (new DateTime($trans_date))->format("Y-m-d");
+            cancel_ot($emp_no,$newdate);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "delete-att":
-        $pin = substr($_POST["recid"],3);
-        del_attendance($pin);
+        if (substr($access_rights_att, 4, 2) === "D+") {
+            $pin = substr($_POST["recid"],3);
+            del_attendance($pin);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-overtime";
-        $emp_no = $_POST['emp_no'];
-        $trans_date = $_POST['trans_date'];
-        get_overtime($emp_no,$trans_date);
+        if (substr($access_rights_ot, 2, 2) === "E+") {
+            $emp_no = $_POST['emp_no'];
+            $trans_date = $_POST['trans_date'];
+            get_overtime($emp_no,$trans_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 
 }

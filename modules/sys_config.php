@@ -1,6 +1,19 @@
 <?php
 $program_code = 3;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-container">
   <div id="tabs" style="width: 100%;"></div>
@@ -8,28 +21,20 @@ require_once('../common/functions.php');
 </div>
 <script type="text/javascript">
 
-  var userlvl = "<?php echo $level['user_level']; ?>";
-
   $(function () {
     $('#tabs').w2tabs({
       name: 'tabs',
-      active: 'tab1',
-      tabs: [
-        { id: 'tab1', text: 'Payroll Group' },
-        { id: 'tab4', text: 'Swipe Memo' },
-        { id: 'tab2', text: 'Holidays' },
-        { id: 'pay_type', text: 'Payroll Type' },
-        { id: 'tab3', text: 'System Configuration'}
-      ],
+      active: "pay_group",
+      tabs: [],
       onClick: function (event) {
         switch (event.target){
-          case 'tab1': pay_group();
+          case 'pay_group': pay_group();
             break;
-          case 'tab2': holidays();
+          case 'hol': holidays();
             break;
-          case 'tab3': sys_utils();
+          case 'sys_config': sys_utils();
             break;
-          case 'tab4': swipe_memo();
+          case 'swipe': swipe_memo();
             break;
           case 'pay_type': payroll_type();
             break;
@@ -39,14 +44,43 @@ require_once('../common/functions.php');
   });
 
   $(document).ready(function(){
-    if(userlvl < 9){
-      w2ui.tabs.hide('tab3');
-      w2ui.tabs.hide('pay_type');
-    }else{
-      w2ui.tabs.show('tab3');
-      w2ui.tabs.show('pay_type');
-    }
-    pay_group();
+    var div = $('#main');
+    w2utils.lock(div, 'Please wait..', true);
+    $.ajax({
+      url: "page/sys_config",
+      type: "post",
+      data: {
+        cmd: "get-tabs"
+      },
+      success: function(data) {
+        var jObject = jQuery.parseJSON(data);
+        if (jObject.status === "success") {
+          w2ui.tabs.tabs = jObject.tabs;
+          w2ui.tabs.active = jObject.active;
+          w2ui.tabs.refresh();
+          w2utils.unlock(div);
+          setTimeout(function(){
+            if(jObject.active === "pay_group"){
+              pay_group();
+            }else if(jObject.active === "hol"){
+              holidays();
+            }else if(jObject.active === "swipe"){
+              swipe_memo();
+            }else if(jObject.active === "sys_config"){
+              sys_utils();
+            }else if(jObject.active === "pay_type"){
+              payroll_type();
+            }
+          }, 100);
+        } else {
+          w2alert(data.message);
+          w2utils.unlock(div);
+        }
+      },
+      error: function() {
+        w2alert("Sorry, there was a problem in server connection!");
+      }
+    });
   });
 
   function payroll_type(){

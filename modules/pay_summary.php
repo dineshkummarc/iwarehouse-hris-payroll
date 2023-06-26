@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 1;
+$program_code = 28;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-panel w3-bottombar w3-border-orange w3-padding">
     <label for="date" class="w3-small"><b>Payroll Date: </b></label>
@@ -12,18 +24,18 @@ require_once('../common/functions.php');
 </div>
 <div class="w3-padding-bottom w3-small w3-hide" id="btn_sum">
     <button class="w3-button w3-round-medium w3-silver w3-border w3-hide">BDO ATM</button>
+    <?php if (substr($access_rights, 8, 2) === "P+") { ?>
     <button class="w3-button w3-round-medium w3-silver w3-border" onclick="print_summary();">PRINT</button>
+    <?php } ?>
 </div>
 <div class="w3-padding-top w3-hide" id="summary_data"></div>
 
 <script type="text/javascript">
 
     function print_summary() {
-        var n = Math.floor(Math.random() * 11);
-        var k = Math.floor(Math.random() * 1000000);
-        var m = String.fromCharCode(n) + k;
-        let token = $(":input#date").val();
-        window.open("page/get_payroll_summary?token="+ m + "&cmd=print-summary&date=" + token ,"_blank","toolbar=yes,scrollbars=yes,resizable=yes,top=500,left=500,width=4000,height=4000");
+        let token = '<?php echo $_SESSION['security_key']; ?>';
+        let date = $(":input#date").val();
+        window.open("page/get_payroll_summary?token="+ token + "&cmd=print-summary&date=" + date ,"_blank","toolbar=yes,scrollbars=yes,resizable=yes,top=500,left=500,width=4000,height=4000");
     }
 
     $(document).ready(function() {

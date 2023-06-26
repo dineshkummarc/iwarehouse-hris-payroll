@@ -1,6 +1,10 @@
 <?php
+error_reporting(0);
+$program_code = 15;
+include('../modules/system/system.config.php');
+
 function sync_deduction($employee_no, $deduction_no){
-  include('../modules/system/system.config.php');
+  global $con;
 
   $deduction_data=  mysqli_fetch_array(mysqli_query($con, "SELECT * FROM `deduction` WHERE `deduction_no`='$deduction_no'"));
   if($deduction_data["deduction_type"] AND $deduction_no){

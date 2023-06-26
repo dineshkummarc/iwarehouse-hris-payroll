@@ -3,6 +3,20 @@ error_reporting(0);
 $program_code = 1;
 require_once('../common/functions.php');
 include('system/system.config.php');
+$_SESSION["emp_no"] = $_GET["emp_no"];
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 0, 4) !== "A+E+"){
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 
 function get_pin_id() {
     global $db, $hris;

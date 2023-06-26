@@ -87,15 +87,15 @@ function payroll_payslip($employee_no, $payroll_date, $receipt_no,$store){
               $days = number_format($payroll_trans_pay_data["credit"],2);
               if($payroll_trans_pay_data["pay_type"] == "BASIC PAY"){
                 if($days >= 8){
-                  $no_days = number_format($days/8,1) .' Days';
-                }else{
-                  $no_days = number_format($days,1).' Days';
+                  $days = floor($payroll_trans_pay_data["credit"] / 8);
+                  $remainingHours = $payroll_trans_pay_data["credit"] % 8;
+                  $no_days = $remainingHours === "" ? $days." Days" : $days.".".$remainingHours." Days";
                 }
               }elseif($payroll_trans_pay_data["pay_type"] == "INCENTIVE"){
                 if($days >= 8){
-                  $no_days = number_format($days/8,1) .' Days';
-                }else{
-                  $no_days = number_format($days,1).' Days';
+                  $days = floor($payroll_trans_pay_data["credit"] / 8);
+                  $remainingHours = $payroll_trans_pay_data["credit"] % 8;
+                  $no_days = $remainingHours === "" ? $days." Days" : $days.".".$remainingHours." Days";
                 }
               }elseif($payroll_trans_pay_data["pay_type"] == "JOB ORDER"){
                 if($days < 8){

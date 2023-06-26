@@ -1,7 +1,14 @@
 <?php
 error_reporting(0);
-$program_code = 8;
+$program_code = 36;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+if (substr($access_rights, 6, 2) !== "B+") {
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile w3-margin-top">
 	<div id="grid" class="w3-round-large" style="width: 100%;"></div>
@@ -79,17 +86,17 @@ function download(desc){
 }
 
 function downloadFile(url, desc) {
-  fetch(url, { method: 'get', mode: 'no-cors', referrerPolicy: 'no-referrer' })
-    .then(res => res.blob())
-    .then(res => {
-      const aElement = document.createElement('a');
-      aElement.setAttribute('download', desc);
-      const href = URL.createObjectURL(res);
-      aElement.href = href;
-      aElement.setAttribute('target', '_blank');
-      aElement.click();
-      URL.revokeObjectURL(href);
-    });
+    fetch(url, { method: 'get', mode: 'no-cors', referrerPolicy: 'no-referrer' })
+        .then(res => res.blob())
+        .then(res => {
+            const aElement = document.createElement('a');
+            aElement.setAttribute('download', desc);
+            const href = URL.createObjectURL(res);
+            aElement.href = href;
+            aElement.setAttribute('target', '_blank');
+            aElement.click();
+            URL.revokeObjectURL(href);
+        });
 };
 
 function delete_backup(recid){
@@ -135,7 +142,7 @@ function get_backup_data() {
                     w2ui['backup_grid'].clear();
                     w2ui['backup_grid'].add(_response.records);
                     w2ui['backup_grid'].unlock();
-                } else if (_response.status === "error") {
+                } else {
                     w2ui['backup_grid'].unlock();
                     w2alert(_response.message);
                 }

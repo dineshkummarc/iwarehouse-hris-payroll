@@ -1,9 +1,21 @@
 <?php
 
-$program_code = 5;
+$program_code = 14;
 require_once('../common/functions.php');
 include("../function/compute_earnings.php");
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 $group_name = $_GET["_group"];
 $store = $_GET["_store"];
 $payroll_group= mysqli_query($con, "SELECT * FROM `payroll_group` WHERE `group_name`='$group_name'");
@@ -24,7 +36,7 @@ if(@mysqli_num_rows($payroll_group)){
   ?>
 <div class="w3-panel w3-round-medium w3-border w3-padding-bottom">
 <span class="w3-padding"><b>Date: <?php echo date("F j".", "."Y"); ?></b></span></br>
-<span class="w3-padding"><b>Period: <?php $from = date("F j",strtotime($log_cutoff)); $to = date("j".", "."Y",strtotime($payroll_cutoff)); echo $from." - ".$to; ?></b></span>
+<span class="w3-padding"><b>Period: <?php $from = date("F j",strtotime($log_cutoff)); $to = date("F j".", "."Y",strtotime($payroll_cutoff)); echo $from." - ".$to; ?></b></span>
 <table class="w3-table-all w3-small w3-padding">
   <thead>
     <tr>

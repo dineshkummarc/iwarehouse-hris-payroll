@@ -1,7 +1,20 @@
 <?php
 
-$program_code = 7;
+$program_code = 17;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile" id="master">
     <div id="worksheet_grid" style="width: 100%; height: 450px;"></div>
@@ -111,7 +124,7 @@ $(function () {
                                 w2ui['worksheet_grid'].clear();
                                 w2ui['worksheet_grid'].add(_response.records);
                                 set_input(_datef, _datet);
-                            } else if (_response.status === "error") {
+                            } else {
                                 w2alert(_response.message);
                             }
                         }
@@ -142,7 +155,7 @@ $(function () {
                                 w2ui['worksheet_grid'].clear();
                                 w2ui['worksheet_grid'].add(_response.records);
                                 set_input(_datef, _datet);
-                            } else if (_response.status === "error") {
+                            } else {
                                 w2alert(_response.message);
                             }
                         }
@@ -169,7 +182,7 @@ $(function () {
                             if (_response.status === "success") {
                                 w2alert("Generation of 13th month payroll Successful!");
                                 get_records();
-                            } else if (_response.status === "error") {
+                            } else {
                                 w2alert(_response.message);
                             }
                         }

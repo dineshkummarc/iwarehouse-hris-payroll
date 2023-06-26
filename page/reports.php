@@ -1,93 +1,211 @@
 <?php
 
-$program_code = 3;
+$program_code_late = 33;
+$program_code_abs = 34;
+$program_code_sss = 23;
+$program_code_ph = 25;
+$program_code_love = 26;
 require_once('../common/functions.php');
 include("../common_function.class.php");
 $cfn = new common_functions();
+$access_rights_ph = $cfn->get_user_rights($program_code_ph);
+$plevel_ph = $cfn->get_program_level($program_code_ph);
+$access_rights_love = $cfn->get_user_rights($program_code_love);
+$plevel_love = $cfn->get_program_level($program_code_love);
+$access_rights_sss = $cfn->get_user_rights($program_code_sss);
+$plevel_sss = $cfn->get_program_level($program_code_sss);
+$access_rights_late = $cfn->get_user_rights($program_code_late);
+$plevel_late = $cfn->get_program_level($program_code_late);
+$access_rights_abs = $cfn->get_user_rights($program_code_abs);
+$plevel_abs = $cfn->get_program_level($program_code_abs);
+$level = $cfn->get_user_level();
 
 switch ($_REQUEST["cmd"]) {
     case "get-sssrecords":
-        $pdate = $_REQUEST["_date"];
-        $pgroup = $_REQUEST["_group"];
-        $records = get_sssrecords($pdate,$pgroup);
-        echo json_encode(array("status" => "success", "records" => $records));
-    break;
+        if (substr($access_rights_sss, 0, 4) === "A+E+") {
+            $pdate = $_REQUEST["_date"];
+            $pgroup = $_REQUEST["_group"];
+            $records = get_sssrecords($pdate,$pgroup);
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "set-grid-philhealth":
-        $group = get_group();
-        $cutoff = get_cutoff();
-        $tool = get_toolbar();
-        $grid = get_gridph_column();
-        echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
-    break;
+        if (substr($access_rights_ph, 6, 2) !== "B+") {
+            if($level <= $plevel_ph ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $group = get_group();
+            $cutoff = get_cutoff();
+            $tool = get_toolbar();
+            $grid = get_gridph_column();
+            echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
+        }
+        break;
     case "get-phrecords":
-        $records = get_phrecords($_REQUEST["paydate"], $_REQUEST["pay_group"]);
-        echo json_encode(array("status" => "success", "records" => $records));
-    break;
+        if (substr($access_rights_ph, 0, 4) === "A+E+") {
+            $records = get_phrecords($_REQUEST["paydate"], $_REQUEST["pay_group"]);
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "get-loverecords":
-        $records = get_loverecords($_REQUEST["paydate"], $_REQUEST["pay_group"]);
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights_love, 0, 4) === "A+E+") {
+            $records = get_loverecords($_REQUEST["paydate"], $_REQUEST["pay_group"]);
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "set-grid-sss":
-        $group = get_group();
-        $cutoff = get_cutoff();
-        $tool = get_toolbar();
-        $grid = get_gridsss_column();
-        echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
-    break;
+        if (substr($access_rights_sss, 6, 2) !== "B+") {
+            if($level <= $plevel_sss ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $group = get_group();
+            $cutoff = get_cutoff();
+            $tool = get_toolbar();
+            $grid = get_gridsss_column();
+            echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
+        }
+        break;
     case "print_sss":
-        $pdate = $_REQUEST["paydate"];
-        $pgroup = $_REQUEST["pay_group"];
-        $records = get_sssrecords($pdate,$pgroup);
-        $grid = get_gridsss_column();
-        $title = "SSS REPORT FOR THE MONTH OF " . $_REQUEST["paydate"];
-        $cfn->print_register(array("columns" => array("column" => $grid), "records" => $records, "title" => $title, "is_line_number" => FALSE, "no-company" => true, "footnote" => "<span class=\"w3-tiny\">PRINTED BY: $_SESSION[name]</span>", "footnote-date" => TRUE));
+        if (substr($access_rights_sss, 8, 2) === "P+") {
+            $pdate = $_REQUEST["paydate"];
+            $pgroup = $_REQUEST["pay_group"];
+            $records = get_sssrecords($pdate,$pgroup);
+            $grid = get_gridsss_column();
+            $title = "SSS REPORT FOR THE MONTH OF " . $_REQUEST["paydate"];
+            $cfn->print_register(array("columns" => array("column" => $grid), "records" => $records, "title" => $title, "is_line_number" => FALSE, "no-company" => true, "footnote" => "<span class=\"w3-tiny\">PRINTED BY: $_SESSION[name]</span>", "footnote-date" => TRUE));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
         break;
     case "export-sss":
-        $pdate = $_REQUEST["paydate"];
-        $pgroup = $_REQUEST["pay_group"];
-        $records = get_sssrecords($pdate,$pgroup);
-        $grid = get_gridsss_column();
-        $cfn->download_csv($grid, $records);
-    break;
+        if (substr($access_rights_sss, 8, 2) === "P+") {
+            $pdate = $_REQUEST["paydate"];
+            $pgroup = $_REQUEST["pay_group"];
+            $date = new DateTime($pdate);
+            $records = get_sssrecords($pdate,$pgroup);
+            $grid = get_gridsss_column();
+            $cfn->download_csv($grid, $records, $filename = "SSS-".$pgroup.".".$date->format('m-d-Y').".".$_SESSION['security_key'].".csv");
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "export-ph":
-        $paydate = $_REQUEST["paydate"];
-        $pay_group = $_REQUEST["pay_group"];
-        $records = get_phrecords($paydate,$pay_group);
-        $grid = get_gridph_column();
-        $cfn->download_csv($grid, $records);
-    break;
+        if (substr($access_rights_ph, 8, 2) === "P+") {
+            $paydate = $_REQUEST["paydate"];
+            $date = new DateTime($paydate);
+            $pay_group = $_REQUEST["pay_group"];
+            $records = get_phrecords($paydate,$pay_group);
+            $grid = get_gridph_column();
+            $cfn->download_csv($grid, $records, $filename = "PhilHealth-".$pay_group.".".$date->format('m-d-Y').".".$_SESSION['security_key'].".csv");
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "export-love":
-        $paydate = $_REQUEST["paydate"];
-        $pay_group = $_REQUEST["pay_group"];
-        $records = get_loverecords($paydate,$pay_group);
-        $grid = get_gridlove_column();
-        $cfn->download_csv($grid, $records);
-    break;
+        if (substr($access_rights_love, 8, 2) === "P+") {
+            $paydate = $_REQUEST["paydate"];
+            $pay_group = $_REQUEST["pay_group"];
+            $date = new DateTime($paydate);
+            $records = get_loverecords($paydate,$pay_group);
+            $grid = get_gridlove_column();
+            $cfn->download_csv($grid, $records, $filename = "Pag-Ibig-".$pay_group.".".$date->format('m-d-Y').".".$_SESSION['security_key'].".csv");
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "set-grid-love":
-        $group = get_group();
-        $cutoff = get_cutoff();
-        $tool = get_toolbar();
-        $grid = get_gridlove_column();
-        echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
-    break;
+        if (substr($access_rights_love, 6, 2) !== "B+") {
+            if($level <= $plevel_love ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $group = get_group();
+            $cutoff = get_cutoff();
+            $tool = get_toolbar();
+            $grid = get_gridlove_column();
+            echo json_encode(array("status" => "success", "group" => $group, "cutoff" => $cutoff, "tool" => $tool, "column" => $grid));
+        }
+        break;
     case "abs-default": //absent
-        set_absent_default();
-    break;
+        if (substr($access_rights_abs, 6, 2) !== "B+") {
+            if($level <= $plevel_abs ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            set_absent_default();
+        }
+        break;
     case "get-absent-records":
-        getAbsentee($_REQUEST["fr"],$_REQUEST["to"]);
-    break;
+        if (substr($access_rights_abs, 6, 2) === "B+") {
+            getAbsentee($_REQUEST["fr"],$_REQUEST["to"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "get-emp-records":
-        getEmpAbsent($_REQUEST["emp_no"],$_REQUEST["fr"],$_REQUEST["to"]);
-    break;
+        if (substr($access_rights_abs, 2, 2) === "E+") {
+            getEmpAbsent($_REQUEST["emp_no"],$_REQUEST["fr"],$_REQUEST["to"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "late-default": //late
-        set_late_default();
-    break;
+        if (substr($access_rights_late, 6, 2) !== "B+") {
+            if($level <= $plevel_late ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            set_late_default();
+        }
+        break;
     case "get-late-records":
-        getLateEmp($_REQUEST["fr"],$_REQUEST["to"]);
-    break;
+        if (substr($access_rights_late, 6, 2) === "B+") {
+            getLateEmp($_REQUEST["fr"],$_REQUEST["to"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
     case "get-emp-recordsLate":
-        getEmpRecords($_REQUEST["emp_no"],$_REQUEST["fr"],$_REQUEST["to"]);
-    break;
+        if (substr($access_rights_late, 2, 2) === "E+") {
+            getEmpRecords($_REQUEST["emp_no"],$_REQUEST["fr"],$_REQUEST["to"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+        break;
 
 }
 

@@ -1,15 +1,27 @@
 <?php
 error_reporting(0);
-$program_code = 3;
+$program_code = 1;
 require_once('../common/functions.php');
-include('system/system.config.php');
-unset($_SESSION["wksfr"]);
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 global $db, $hris;
 $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `employee_no`=:no");
 $master->execute(array(":no" => substr($_REQUEST["emp_no"], 3)));
 if ($master->rowCount()) {
   $master_data = $master->fetch(PDO::FETCH_ASSOC);
   $emp_no = $master_data["employee_no"];
+  $_SESSION["emp_no"] = '100'.$emp_no;
   $emp_pin = $master_data["pin"];
   $name = $master_data["given_name"] . " " . $master_data["middle_name"] . " " . $master_data["family_name"];
   if (isset($_REQUEST["set"])) {
@@ -22,10 +34,15 @@ if ($master->rowCount()) {
     }
   }
   if (!isset($_SESSION["wksfr"])) {
-    $wks = new DateTime(date("m/01/Y"));
-    $wks->modify("-1 month");
-    $_SESSION["wksfr"] = $wks->format("Y-m-d");
-    $_SESSION["wksto"] = date("Y-m-d");
+    $payroll_date = $db->prepare("SELECT * FROM $db_hris.`payroll_group` WHERE `group_name`=:group");
+    $payroll_date->execute(array(":group" => $master_data['group_no']));
+    if ($payroll_date->rowCount()) {
+      $payroll_date_data = $payroll_date->fetch(PDO::FETCH_ASSOC);
+      $fr = (new DateTime($payroll_date_data['cutoff_date']))->format("Y-m-d");
+      $to = (new DateTime(date('Y-m-d')))->format("Y-m-d");
+      $_SESSION["wksfr"] = $fr;
+      $_SESSION["wksto"] = $to;
+    }
   }
 }
 ?>
@@ -97,9 +114,8 @@ if ($master->rowCount()) {
                       $color = "w3-orange" . " " . strtoupper($date->format("l"));
                     }else{
                       $color = strtoupper($date->format("l"));
-                    }
-                    ?>
-                    <button onclick="alter_sched('<?php echo strtoupper($date->format("l")); ?>', this);" id="<?php echo $emp_shift_data["shift_code"]; ?>" data-id="<?php echo $emp_shift_data["shift_name"]; ?>" class="w3-button w3-padding w3-row-padding w3-border w3-round-medium w3-border-orange <?php echo $color; ?>"><?php echo $emp_shift_data["shift_name"]; ?></button>
+                    } ?>
+                      <button onclick="alter_sched('<?php echo strtoupper($date->format("l")); ?>', this);" id="<?php echo $emp_shift_data["shift_code"]; ?>" data-id="<?php echo $emp_shift_data["shift_name"]; ?>" class="w3-button w3-padding w3-row-padding w3-border w3-round-medium w3-border-orange <?php echo $color; ?>"><?php echo $emp_shift_data["shift_name"]; ?></button>
                     <?php
                   }
                 } ?></div></td>
@@ -109,6 +125,7 @@ if ($master->rowCount()) {
             } ?>
       </tbody>
       <tfoot>
+        <?php if (substr($access_rights, 2, 2) === "E+") { ?>
         <tr>
           <td colspan="3">
             <input type="text" id="remark" class="w3-input" placeholder="Provide remarks for changes in shift schedule..." style="height: 30px;"></input>
@@ -116,9 +133,10 @@ if ($master->rowCount()) {
         </tr>
         <tr>
           <td colspan="3">
-          <button class="w3-col s12 w3-bar-item w3-button w3-teal w3-padding" id="save" data-recid="<?php echo '100'.$emp_no; ?>" onclick="save_changes();">SAVE CHANGES</button>
+            <button class="w3-col s12 w3-bar-item w3-button w3-teal w3-padding" id="save" data-recid="<?php echo '100'.$emp_no; ?>" onclick="save_changes();">SAVE CHANGES</button>
           </td>
         </tr>
+        <?php } ?>
       </tfoot>
     </table>
   </div>
@@ -132,7 +150,7 @@ if ($master->rowCount()) {
       <table class="w3-row-padding w3-table-all w3-tiny w3-hoverable">
         <thead>
           <tr>
-            <th colspan="2">
+            <th colspan="3">
               <div class="w3-col s4 w3-row-padding">
                 <input size="15" class="w3-input w3-row-padding date w3-col s12 w3-padding" id="fr" value="<?php echo (new DateTime($_SESSION["wksfr"]))->format("m/d/Y"); ?>" />
               </div>
@@ -140,12 +158,15 @@ if ($master->rowCount()) {
                 <input size="15" class="w3-input w3-row-padding date w3-col s12 w3-padding" id="to" value="<?php echo (new DateTime($_SESSION["wksto"]))->format("m/d/Y"); ?>" />
               </div>
               <div class="w3-col s4 w3-row-padding">
+                <?php if (substr($access_rights, 2, 2) === "E+") { ?>
                 <button onclick="refresh_history();" class="w3-button w3-bar w3-padding w3-row-padding w3-col s12 w3-hover-orange"><i class="fa fa-refresh" aria-hidden="true"></i>&nbsp;&nbsp;REFRESH</button>
+                <?php } ?>
               </div>
             </th>
           </tr>
           <tr>
             <th>DATE</th>
+            <th>DAY</th>
             <th>SHIFT</th>
           </tr>
         </thead>
@@ -154,6 +175,7 @@ if ($master->rowCount()) {
         while ($sc_data = $sc->fetch(PDO::FETCH_ASSOC)) { ?>
           <tr>
             <td><?php echo (new DateTime($sc_data["trans_date"]))->format("m/d/Y"); ?></td>
+            <td><?php echo (new DateTime($sc_data["trans_date"]))->format("l"); ?></td>
             <td><?php echo $sc_data["description"] . " -> <span class=\"w3-text-green\">" . $sc_data["shift_name"] . "</span>"; ?></td>
           </tr>
           <?php
@@ -244,6 +266,7 @@ function save_changes() {
           success: function (data) {
             var jObject = jQuery.parseJSON(data);
             if (jObject.status === "success") {
+              w2alert(jObject.message);
               $('#grid').load('modules/master_schedule.php?emp_no='+ $('button#save').data('recid') + '&cmd=edit');
             } else {
               w2alert(jObject.message);

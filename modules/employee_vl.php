@@ -1,8 +1,20 @@
 <?php
 
-$program_code = 2;
+$program_code = 1;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+"){
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "This module is disabled by the administrator!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 $current_date = date("m/d/Y");
 if (date("m") <= "11") {
   $year_end = date("12/31/Y");
@@ -11,7 +23,7 @@ if (date("m") <= "11") {
   $yr = date("Y") + 1;
   $year_end = date("12/31/$yr");
 }
-if($level['user_level'] > 7){
+if (substr($access_rights, 4, 2) === "D+") {
   $can_delete = 1;
 }else{
   $can_delete = 0;
@@ -21,6 +33,7 @@ $mast->execute(array(":no" => substr($_GET["emp_no"], 3)));
 if ($mast->rowCount()) {
   $mast_data = $mast->fetch(PDO::FETCH_ASSOC);
   $recid = $mast_data["employee_no"];
+  $_SESSION["emp_no"] = '100'.$recid;
   $name = $mast_data["given_name"] . " " . $mast_data["middle_name"] . " " . $mast_data["family_name"];
   $evl = $db->prepare("SELECT * FROM $db_hris.`employee_vl` WHERE `employee_no`=:eno AND !`is_cancelled` AND `year`=:yr");
   $evl->execute(array(":eno" => $recid, ":yr" => date("Y")));
@@ -31,8 +44,8 @@ if ($mast->rowCount()) {
   $a = $db->prepare("SELECT * FROM $db_hris.`employee_allowable_vl` WHERE `employee_no`=:no AND `year`=:yr");
   $a->execute(array(":no" => $recid, ":yr" => date("Y")));
   if ($a->rowCount()) {
-      $data = $a->fetch(PDO::FETCH_ASSOC);
-      $allowable = $data["no_of_days"];
+    $data = $a->fetch(PDO::FETCH_ASSOC);
+    $allowable = $data["no_of_days"];
   } else {
     $allowable = 0;
   }
@@ -61,7 +74,9 @@ if ($mast->rowCount()) {
               <input class="w3-input w3-col s12 w3-padding" value="<?php echo number_format($allowable, 0); ?>" id="allowed" />
             </div>
             <div class="w3-col s12 w3-row-padding w3-margin-top">
-              <button class="w3-col s12 w3-bar-item w3-button w3-teal w3-padding w3-round-medium" id="save" data-recid="<?php echo $recid; ?>" onclick="save_changes();">SAVE CHANGES</button>
+              <?php if (substr($access_rights, 0, 2) === "A+") { ?>
+              <button class="w3-col s12 w3-bar-item w3-button w3-orange w3-text-white w3-padding w3-round-medium" id="save" data-recid="<?php echo $recid; ?>" onclick="save_changes();">SAVE CHANGES</button>
+              <?php } ?>
             </div>
             <div class="w3-col s12 m6 w3-row-padding">
               <label class="w3-label w3-row-padding w3-tiny">TOTAL V/L PLOTTED</label>

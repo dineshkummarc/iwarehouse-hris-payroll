@@ -1,14 +1,27 @@
 <?php
 error_reporting(0);
-$program_code = 10;
+$program_code = 7;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile w3-margin-top">
 	<div id="grid" class="w3-round-large" style="width: 100%;"></div>
 </div>
 <script type="text/javascript">
 
-    var levels = ['1','2','3','8','9','10'];
+    var levels = ['0','1','2','3','8','9','10'];
     var parent;
 
 $(function () {
@@ -163,7 +176,7 @@ function save_prog(){
                 }
             },
             error: function () {
-                w2alert(jObject.message);
+                w2alert("Sorry, There was a problem in server connection or Session Expired!");
                 w2ui['prog_maint'].unlock();
             }
         });

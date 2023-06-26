@@ -2,6 +2,19 @@
 error_reporting(0);
 $program_code = 2;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-col s12 w3-panel w3-small">
     <div class="w3-col s12 w3-margin-top w3-margin-bottom w3-padding">
@@ -74,10 +87,18 @@ require_once('../common/functions.php');
                 id : id
             },
             success: function (data){
-                $('#jd_list').html(data)
-                $('#jd'+id).addClass("w3-flat-alizarin");
-                $('#jd_list').show();
-                w2utils.unlock(div);
+                if (data !== ""){
+                    var jObject = jQuery.parseJSON(data);
+                    if (jObject.status === "success") {
+                        $('#jd_list').html(jObject.data)
+                        $('#jd'+id).addClass("w3-flat-alizarin");
+                        $('#jd_list').show();
+                        w2utils.unlock(div);
+                    }else{
+                        w2utils.unlock(div);
+                        w2alert(jObject.message);
+                    }
+                }
             },
             error: function (){
                 w2alert("Sorry, there was a problem in server connection!");
@@ -109,6 +130,9 @@ require_once('../common/functions.php');
                         $('input#pos_id').val(pos_id);
                         $('textarea#jobd').val(job_desc);
                         w2utils.unlock(div);
+                    }else{
+                        w2utils.unlock(div);
+                        w2alert(_response.message);
                     }
                 }
             },
@@ -147,6 +171,8 @@ require_once('../common/functions.php');
                     $("#job_div1").hide();
                     get_record();
                     w2utils.unlock(div);
+                }else{
+                    w2alert(jObject.message);
                 }
             },
             error: function () {
@@ -180,6 +206,8 @@ require_once('../common/functions.php');
                     $("#job_div1").hide();
                     get_record();
                     w2utils.unlock(div);
+                }else{
+                    w2alert(jObject.message);
                 }
             },
             error: function () {
@@ -210,6 +238,8 @@ require_once('../common/functions.php');
                             $("#job_div").hide();
                             $("#job_div1").hide();
                             w2utils.unlock(div);
+                        }else{
+                            w2alert(jObject.message);
                         }
                     },
                     error: function () {

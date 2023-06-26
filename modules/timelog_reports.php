@@ -1,7 +1,19 @@
 <?php
-$program_code = 3;
+$program_code = 31;
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <style type="text/css">
 .w2ui-col-header, .w2ui-panel-title, .w2ui-grid-summary {text-align: center; font-weight: bolder; }
@@ -126,7 +138,7 @@ function remove_it(record) {
           w2ui.grid_attendee.add(_response.attendee);
           w2ui.grid.clear();
           w2ui.grid.add(_response.records);
-        }else if(_response.status === "error"){
+        }else{
           w2alert(_response.message);
         }
       }
@@ -163,7 +175,7 @@ function add_attendee(name) {
           $("#name").val("");
           w2ui.grid.clear();
           w2ui.grid.add(_response.records);
-        } else if (_response.status === "error") {
+        } else {
           w2alert(_response.message);
         }
       }
@@ -213,7 +225,7 @@ function get_attendee() {
               w2ui.layout.show("right");
             }, 200);
           }, 200);
-        }else if (_response.status === "error") {
+        }else{
           w2alert(_response.message);
         }
       }
@@ -250,7 +262,7 @@ function get_attendance() {
           config.grid.columns = _response.columns;
           config.grid.records = _response.records;
           w2ui.layout.content("main", $().w2grid(config.grid));
-        } else if (_response.status === "error") {
+        } else {
           w2alert(_response.message);
         }
       }

@@ -2,7 +2,10 @@
 
 $program_code = 1;
 require_once('../common/functions.php');
-include '../common/master_journal.php';
+//include '../common/master_journal.php';
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
 
 switch ($_POST["cmd"]) {
     case "get-position":
@@ -15,71 +18,136 @@ switch ($_POST["cmd"]) {
         get_group();
     break;
     case "save-data":
-        $record = json_decode(html_entity_decode($_POST["record"]), true);
-        $bday = new DateTime($record["bday"]);
-        $now = new DateTime();
-        $int = $now->diff($bday); //check if employee is above 18
-        if (number_format($int->y, 0, '.', '') < number_format(18, 0)) {
-            echo json_encode(array("status" => "error", "message" => "Invalid birthdate.  Employee must at least 18 years old. Age is " . $int->y, "age" => $int->y));
-        }else{
-            if($record["cmd"] == 'add'){
-                save_data($record);
+        if (substr($access_rights, 0, 6) === "A+E+D+"){
+            $record = json_decode(html_entity_decode($_POST["record"]), true);
+            $bday = new DateTime($record["bday"]);
+            $now = new DateTime();
+            $int = $now->diff($bday); //check if employee is above 18
+            if (number_format($int->y, 0, '.', '') < number_format(18, 0)) {
+                echo json_encode(array("status" => "error", "message" => "Invalid birthdate.  Employee must at least 18 years old. Age is " . $int->y, "age" => $int->y));
             }else{
-                update_data($record);
+                if($record["cmd"] == 'add'){
+                    save_data($record);
+                }else{
+                    update_data($record);
+                    
+                }
             }
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
         }
     break;
     case "get-emp-data":
-        $emp_no = substr($_POST["emp_no"], 3);
-        get_emp_data($emp_no);
+        if (substr($access_rights, 6, 2) === "B+"){
+            $emp_no = substr($_POST["emp_no"], 3);
+            get_emp_data($emp_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "save-rate":
-        $rate = $_POST["rate"];
-        $inctv = $_POST["incentive"];
-        $emp_no = $_POST["emp_no"];
-        $total_pay = $_POST["total"];
-        $rm = $_POST["rm"];
-        save_update_rate($rate,$inctv,$emp_no,$total_pay,$rm);
+        if (substr($access_rights, 0, 4) === "A+E+"){
+            $rate = $_POST["rate"];
+            $inctv = $_POST["incentive"];
+            $emp_no = $_POST["emp_no"];
+            $total_pay = $_POST["total"];
+            $rm = $_POST["rm"];
+            save_update_rate($rate,$inctv,$emp_no,$total_pay,$rm);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "save-status":
-        $emp_status = $_POST["emp_status"];
-        $remarks = $_POST["remarks"];
-        $emp_no = $_POST["emp_no"];
-        save_update_status($emp_status,$remarks,$emp_no);
+        if (substr($access_rights, 0, 4) === "A+E+"){
+            $emp_status = $_POST["emp_status"];
+            $remarks = $_POST["remarks"];
+            $emp_no = $_POST["emp_no"];
+            save_update_status($emp_status,$remarks,$emp_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "new-vl":
-        new_vl(array("recid" => $_POST["recid"], "date" => $_POST["date"], "days" => number_format($_POST["days"] * 1 + 0, 0, '.', '')));
+        if (substr($access_rights, 0, 2) === "A+") { 
+            new_vl(array("recid" => $_POST["recid"], "date" => $_POST["date"], "days" => number_format($_POST["days"] * 1 + 0, 0, '.', '')));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "cancel-vl":
-        cancel_vl(array("recid" => $_POST["recid"], "date" => $_POST["date"], "remark" => $_POST["remark"], "no" => $_POST["no"]));
+        if (substr($access_rights, 2, 4) === "E+D+"){
+            cancel_vl(array("recid" => $_POST["recid"], "date" => $_POST["date"], "remark" => $_POST["remark"], "no" => $_POST["no"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-journal":
-        $pin = $_POST["pin"];
-        $df = (new DateTime($_POST["df"]))->format("Y-m-d");
-        $dt = (new DateTime($_POST["dt"]))->format("Y-m-d");
-        $records = get_journal($df, $dt, $pin);
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights, 6, 2) === "B+") {
+            $pin = $_POST["pin"];
+            $df = (new DateTime($_POST["df"]))->format("Y-m-d");
+            $dt = (new DateTime($_POST["dt"]))->format("Y-m-d");
+            $records = get_journal($df, $dt, $pin);
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "del-emp":
-        $pin = substr($_POST["pin"],3);
-        del_emp($pin);
+        if (substr($access_rights, 4, 2) === "D+") {
+            $pin = substr($_POST["pin"],3);
+            del_emp($pin);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "recall-emp":
-        $emp_no = substr($_POST["emp_no"],3);
-        recall_emp($emp_no);
+        if (substr($access_rights, 2, 2) === "E+") {
+            $emp_no = substr($_POST["emp_no"],3);
+            recall_emp($emp_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-master-data":
-        $filter = $_POST['filter'];
-        $records = get_master_data($filter);
-        echo json_encode(array("status" => "success", "records" => $records));
+        if (substr($access_rights, 6, 2) === "B+") {
+            if($_POST['filter'] === "all"){
+                $_SESSION["filter"] = 'all';
+            }else{
+                $_SESSION["filter"] = 'non_del';
+            }
+            $filter = $_SESSION["filter"];
+            $records = get_master_data($filter);
+            echo json_encode(array("status" => "success", "records" => $records));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "update-workschedule":
-        save_worksched(array("sched" => $_POST["sched"], "sched_desc" => $_POST["sched_desc"], "recid" => substr($_POST["recid"],3), "set" => $_POST["set"], "remark" => $_POST["remark"]));
+        if (substr($access_rights, 0, 4) === "A+E+"){
+            save_worksched(array("sched" => $_POST["sched"], "sched_desc" => $_POST["sched_desc"], "recid" => substr($_POST["recid"],3), "set" => $_POST["set"], "remark" => $_POST["remark"]));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "refresh-workschedule":
-        $_SESSION["wksfr"] = (new DateTime($_POST["fr"]))->format("Y-m-d");
-        $_SESSION["wksto"] = (new DateTime($_POST["to"]))->format("Y-m-d");
-        echo json_encode(array("status" => "success", "message" => "error"));
+        if (substr($access_rights, 6, 2) === "B+"){
+            $_SESSION["wksfr"] = (new DateTime($_POST["fr"]))->format("Y-m-d");
+            $_SESSION["wksto"] = (new DateTime($_POST["to"]))->format("Y-m-d");
+            echo json_encode(array("status" => "success", "message" => "ok"));
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 }
 
@@ -121,7 +189,7 @@ function save_worksched($record) {
                         }
                     }
                 }
-                echo json_encode(array("status" => "success"));
+                echo json_encode(array("status" => "success", "message" => "Changes in Work Schedule saved!",));
             } else {
                 echo json_encode(array("status" => "error", "message" => "No changes found!", "sched" => $sched, "record" => $record, "e" => $m->errorInfo(), "d" => array(":sked" => $sched, ":set" => $record["set"], ":no" => $record["recid"], ":uid" => $_SESSION["name"])));
             }
@@ -152,7 +220,7 @@ function get_master_data($filter) {
     global $db, $db_hris;
     $records = array();
 
-    if($filter == 1){
+    if($filter == "non_del"){
         $filtered = ' WHERE !`master_data`.`is_inactive` ';
     }else{
         $filtered = '';
@@ -226,7 +294,7 @@ function del_emp($pin) {
     $del_emp = $db->prepare("UPDATE $db_hris.`master_data` SET `is_inactive`=:actv WHERE `employee_no`=:pin");
     $del_emp->execute(array(":pin"=>$pin, ":actv"=> 1));
     if($del_emp->rowCount()){
-        echo json_encode(array("status" => "success"));
+        echo json_encode(array("status" => "success", "message" => "Deleted!",));
     }else{
         echo json_encode(array("status" => "error", "message" => "This employee is already InActive!"));
     }
@@ -292,17 +360,14 @@ function save_update_rate($rate,$inctv,$emp_no,$total_pay,$rm) {
             $change = master_journal($rate_data["incentive_cash"], $inctv, "Incentive Cash", $rm, $employee_no);
         }
         if ($change) {
-
             $update_rate = $db->prepare("UPDATE $db_hris.`employee_rate` SET `daily_rate`=:rate, `incentive_cash`=:cash, `user_id`=:uid, `station_id`=:ip, `remark`=:rm, `total_pay`=:total WHERE `employee_no`=:id");
             $update_rate->execute(array(":id" => $emp_no, ":rate" => $rate, ":cash" => $inctv, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":rm" => $rm, ":total" => $total_pay));
 
             $master1 = $db->prepare("UPDATE $db_hris.`master_id` SET `employee_no`=:emp WHERE `pin_no`=:pin");
-
             $update1 = array(":emp" => $emp_no, ":pin" => $employee_no);
-
             $master1->execute($update1);
 
-            echo json_encode(array("status" => "success", "emp_no" => $emp_no, "rate" => number_format($rate,2), "inctv" => number_format($inctv,2), "total" => number_format($total_pay,2)));
+            echo json_encode(array("status" => "success", "message" => "Changes saved!", "emp_no" => $emp_no, "rate" => number_format($rate,2), "inctv" => number_format($inctv,2), "total" => number_format($total_pay,2)));
         }else{
             echo json_encode(array("status" => "error", "message" => "No changes detected!"));
         }
@@ -313,20 +378,17 @@ function save_update_rate($rate,$inctv,$emp_no,$total_pay,$rm) {
             $rate_data = $check_rate->fetch(PDO::FETCH_ASSOC);
             $employee_no = $rate_data['pin'];
             
-            master_journal('0.00', number_format($rate,2), "Daily Rate", $rm, $employee_no);
-            master_journal('0.00', number_format($inctv,2), "Incentive Cash", $rm, $employee_no);
+            master_journal('0.00', number_format($rate,2,",","."), "Daily Rate", $rm, $employee_no);
+            master_journal('0.00', number_format($inctv,2,",","."), "Incentive Cash", $rm, $employee_no);
 
             $new_rate = $db->prepare("INSERT INTO $db_hris.`employee_rate`(`employee_no`, `daily_rate`, `incentive_cash`, `user_id`, `station_id`, `remark`, `total_pay`) VALUES (:id, :rate, :cash, :uid, :ip, :rm, :total)");
-
             $new_rate->execute(array(":id" => $emp_no, ":rate" => $rate, ":cash" => $inctv, ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":rm" => $rm, ":total" => $total_pay));
 
             $master1 = $db->prepare("UPDATE $db_hris.`master_id` SET `employee_no`=:emp WHERE `pin_no`=:pin");
-
             $update1 = array(":emp" => $emp_no, ":pin" => $employee_no);
-
             $master1->execute($update1);
 
-            echo json_encode(array("status" => "success", "emp_no" => $emp_no, "rate" => number_format($rate,2), "inctv" => number_format($inctv,2), "total" => number_format($total_pay,2)));
+            echo json_encode(array("status" => "success",  "message" => "Changes saved!", "emp_no" => $emp_no, "rate" => number_format($rate,2), "inctv" => number_format($inctv,2), "total" => number_format($total_pay,2)));
         }
     }
 }
@@ -371,7 +433,7 @@ function save_update_status($emp_status,$remarks,$emp_no) {
 
                     $master1->execute($update1);
 
-                    echo json_encode(array("status" => "success"));
+                    echo json_encode(array("status" => "success", "message" => "Changes in Employment Status"));
                 }else{
                     echo json_encode(array("status" => "error", "message" => "No changes detected!"));
                 }
@@ -740,4 +802,19 @@ function cancel_vl($record) {
     } else {
         echo json_encode(array("status" => "error", "Please try again later!  Out of focus.", "e" => $vl->errorInfo(), "record" => $record));
     }
+}
+
+function master_journal($change_from, $change_to, $reference, $remark, $employee_no){
+    global $db, $db_hris;
+
+    $date=date("Y-m-d H:i:s");
+
+    $journal = $db->prepare("INSERT INTO $db_hris.`master_journal` (`employee_no`, `reference`, `change_from`, `change_to`, `remarks`, `user_id`, `station_id`) VALUES (:eno, :ref, :fr, :to, :rmrk, :uid, :host)");
+    $journal->execute(array(":eno" => $employee_no, ":ref" => $reference, ":fr" => $change_from, ":to" => $change_to, ":rmrk" => $remark, ":uid" => $_SESSION["name"], ":host" => $_SERVER['REMOTE_ADDR']));
+    if($journal->rowCount()){
+        $data = 1;
+    }else{
+        $data = 0;
+    }
+    return $data;
 }

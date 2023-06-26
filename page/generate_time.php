@@ -9,6 +9,17 @@ $trans_date = $cfn->datefromtable($date);
 $store = $_GET["_store"];
 $group = $_GET["_group"];
 
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 0, 6) !== "A+E+D+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 mysqli_query($con, "DELETE FROM `_tmp_time`") or die(mysqli_error($con));
 
 $master =  mysqli_query($con, "SELECT * FROM `attendance_log`,`master_data` WHERE `master_data`.`pin`=`attendance_log`.`pin` AND `master_data`.`store`='$store' AND `master_data`.`group_no`='$group' AND `attendance_log`.`log_date`='$trans_date' GROUP BY `attendance_log`.`pin` ORDER BY `attendance_log`.`row_id`");

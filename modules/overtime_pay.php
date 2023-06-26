@@ -1,6 +1,19 @@
 <?php
-$program_code = 8;
+$program_code = 22;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-responsive w3-mobile">
     <div class="w3-row">
@@ -27,6 +40,7 @@ $(function () {
             lineNumbers: true
         },
         multiSearch: false,
+        multiSelect: false,
         searches: [
             {field: 'pin', caption: 'Employee No', type: 'int'},
             {field: 'name', caption: 'Full Name', type: 'text'}
@@ -73,6 +87,7 @@ $(function () {
             lineNumbers: true
         },
         multiSearch: false,
+        multiSelect: false,
         searches: [
             {field: 'pin', caption: 'Employee No', type: 'int'},
             {field: 'name', caption: 'Full Name', type: 'text'}
@@ -196,6 +211,9 @@ function show_approve_emp_ot (emp_no,date) {
                                 $("input#emp_name").val(_response.emp_name);
                                 $("input#trans_date").val(_response.trans_date);
                                 $("input#trans_time").val(_response.trans_time);
+                            }else{
+                                w2popup.close();
+                                w2alert(_response.message);
                             }
                         }
                     }
@@ -284,10 +302,15 @@ function approve_ot(){
             trans_date: trans_date,
             trans_time: trans_time
         },
+        dataType: "json",
         success: function(data){
-            get_emp_ot();
-            get_approved_ot();
-            w2popup.close();
+            if(data.status === "success"){
+                get_emp_ot();
+                get_approved_ot();
+                w2popup.close();
+            }else{
+                w2alert(data.message);
+            }
         }
     });
 }
@@ -302,9 +325,14 @@ function cancel_ot(emp_no,date){
             emp_no: emp_no,
             date: date
         },
+        dataType: "json",
         success: function(data){
-            get_emp_ot();
-            get_approved_ot();
+            if(data.status === "success"){
+                get_emp_ot();
+                get_approved_ot();
+            }else{
+                w2alert(data.message);
+            }
         }
     });
 }

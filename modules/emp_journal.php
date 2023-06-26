@@ -3,12 +3,11 @@ $program_code = 2;
 require_once('../common/functions.php');
 
 $today=date('Y-m-d');
-$date1=strtotime("-60 day");
+$date1=strtotime("-90 day");
 $fdate=date('Y-m-d',$date1);
 $to = (new DateTime($today))->format("m/d/Y");
 $fr = (new DateTime($fdate))->format("m/d/Y");
-
-
+$_SESSION["emp_no"] = $_GET["pin_no"];
 ?>
 <div class="w3-container w3-panel" style="width: 100%;">
 	<div class="w3-container w3-padding-small">

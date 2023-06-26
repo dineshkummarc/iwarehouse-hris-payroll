@@ -1,154 +1,249 @@
 <?php
-
 $program_code = 3;
+$program_code_grp = 37; //paygroup
+$program_code_memo = 38; //swipe memo
+$program_code_hol = 39; //holiday
+$program_code_shift = 35; //shift
 require_once('../common/functions.php');
-
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights_grp = $cfn->get_user_rights($program_code_grp); //paygroup
+$plevel_grp = $cfn->get_program_level($program_code_grp); //paygroup
+$access_rights_memo = $cfn->get_user_rights($program_code_memo); //swipe memo
+$plevel_memo = $cfn->get_program_level($program_code_memo); //swipe memo
+$access_rights_hol = $cfn->get_user_rights($program_code_hol); //holiday
+$plevel_hol = $cfn->get_program_level($program_code_hol); //holiday
+$access_rights_shift = $cfn->get_user_rights($program_code_shift); //shift
+$plevel_shift = $cfn->get_program_level($program_code_shift); //shift
+$level = $cfn->get_user_level();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
 switch ($_POST["cmd"]) {
+    case "get-tabs":
+        if (substr($access_rights, 6, 2) !== "B+") {
+            if($level <= $plevel ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            get_tabs($access_rights,$access_rights_grp,$access_rights_memo,$access_rights_hol,$level);
+        }
+        break;
     case "new_group":
-        $group_name = $_POST["group_name"];
-        $payroll_date = (new DateTime($_POST["payroll_date"]))->format("Y-m-d");
-        $cuttoff_date = (new DateTime($_POST["cuttoff_date"]))->format("Y-m-d");
-        new_group($group_name,$payroll_date,$cuttoff_date);
+        if (substr($access_rights_grp, 0, 2) === "A+") {
+            $group_name = $_POST["group_name"];
+            $payroll_date = (new DateTime($_POST["payroll_date"]))->format("Y-m-d");
+            $cuttoff_date = (new DateTime($_POST["cuttoff_date"]))->format("Y-m-d");
+            new_group($group_name,$payroll_date,$cuttoff_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "del_group":
-        $group_no = $_POST["group_no"];
-        del_group($group_no);
+        if (substr($access_rights_grp, 4, 2) === "D+") {
+            $group_no = $_POST["group_no"];
+            del_group($group_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "update_group":
-        $pay_group_code = $_POST["pay_group_code"];
-        $payroll_date = (new DateTime($_POST["payroll_date"]))->format("Y-m-d");
-        $cuttoff_date = (new DateTime($_POST["cuttoff_date"]))->format("Y-m-d");
-        update_group($pay_group_code,$payroll_date,$cuttoff_date);
+        if (substr($access_rights_grp, 0, 4) === "A+E+") {
+            $pay_group_code = $_POST["pay_group_code"];
+            $payroll_date = (new DateTime($_POST["payroll_date"]))->format("Y-m-d");
+            $cuttoff_date = (new DateTime($_POST["cuttoff_date"]))->format("Y-m-d");
+            update_group($pay_group_code,$payroll_date,$cuttoff_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "get-holiday":
-        $year = date('Y');
-        $prev_year = date("Y",strtotime("-1 year")); ?> 
-        <div class="window w3-col l12 m12 s12 w3-responsive w3-mobile w3-row" style="overflow-y: scroll;">
-            <div class="w3-col s4 w3-padding w3-row-padding">
-                <table class="w3-table-all w3-hoverable w3-small">
-                    <thead>
-                        <tr>
-                            <th colspan="4" class="w3-center">PREVIOS YEAR HOLIDAYS</th>
-                        </tr>
-                        <tr>
-                            <th colspan="2" class="w3-center">HOLIDAY DATE</th>
-                            <th class="w3-center">HOLIDAY DESCRIPTION</th>
-                            <th class="w3-center">is Special?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                        $cnt = 0;
-                        $holiday = "SELECT * FROM holiday WHERE holiday_date LIKE '%$prev_year%' ORDER BY holiday_date";
-                        $rholiday = mysqli_query($con,$holiday);
-                        if (@mysqli_num_rows($rholiday)) {
-                            while ($holiday_data = mysqli_fetch_array($rholiday)) {
-                            $hol_id = $holiday_data["holiday_id"];
-
-                            if($holiday_data["holiday_date"] < date('Y-m-d')){ ?>
+        if (substr($access_rights_hol, 6, 2) !== "B+") {
+            if($level <= $plevel ){
+                echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+                return;
+            }
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }else{
+            $year = date('Y');
+            $prev_year = date("Y",strtotime("-1 year")); ?> 
+            <div class="window w3-col l12 m12 s12 w3-responsive w3-mobile w3-row" style="overflow-y: scroll;">
+                <div class="w3-col s4 w3-padding w3-row-padding">
+                    <table class="w3-table-all w3-hoverable w3-small">
+                        <thead>
                             <tr>
-                                <td align="right"><?php echo number_format(++$cnt); ?>.</td>
-                                <td><?php echo $holiday_data["holiday_date"]; ?></td>
-                                <td><?php echo $holiday_data["description"]; ?></td>
-                                <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                <th colspan="4" class="w3-center">PREVIOS YEAR HOLIDAYS</th>
                             </tr>
-                            <?php
-                            }else{ ?>
-                            <tr onclick="edit_del(<?php echo $hol_id; ?>)" style="cursor: pointer;">
-                                <td align="right"><?php echo number_format(++$cnt); ?>.</td>
-                                <td><?php echo $holiday_data["holiday_date"]; ?></td>
-                                <td><?php echo $holiday_data["description"]; ?></td>
-                                <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
-                            </tr>
-                            <?php
-                            }
-                        }
-                    } ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="w3-col s4 w3-padding w3-row-padding">
-                <table class="w3-table-all w3-hoverable w3-small">
-                    <thead>
-                        <tr>
-                            <th colspan="4" class="w3-center">CURRENT YEAR HOLIDAYS</th>
-                        </tr>
-                        <tr>
-                            <th colspan="2" class="w3-center">HOLIDAY DATE</th>
-                            <th class="w3-center">HOLIDAY DESCRIPTION</th>
-                            <th class="w3-center">is Special?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                        $cnt = 0;
-                        $holiday = "SELECT * FROM holiday WHERE holiday_date LIKE '%$year%' ORDER BY holiday_date";
-                        $rholiday = mysqli_query($con,$holiday);
-                        if (@mysqli_num_rows($rholiday)) {
-                            while ($holiday_data = mysqli_fetch_array($rholiday)) {
-                            $hol_id = $holiday_data["holiday_id"];
-
-                            if($holiday_data["holiday_date"] < date('Y-m-d',strtotime("-15 days"))){ ?>
                             <tr>
-                                <td align="right"><?php echo number_format(++$cnt); ?>.</td>
-                                <td><?php echo $holiday_data["holiday_date"]; ?></td>
-                                <td><?php echo $holiday_data["description"]; ?></td>
-                                <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                <th colspan="2" class="w3-center">HOLIDAY DATE</th>
+                                <th class="w3-center">HOLIDAY DESCRIPTION</th>
+                                <th class="w3-center">is Special?</th>
                             </tr>
-                            <?php
-                            }else{ ?>
-                            <tr onclick="edit_del(<?php echo $hol_id; ?>)" style="cursor: pointer;">
-                                <td align="right"><?php echo number_format(++$cnt); ?>.</td>
-                                <td><?php echo $holiday_data["holiday_date"]; ?></td>
-                                <td><?php echo $holiday_data["description"]; ?></td>
-                                <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
-                            </tr>
-                            <?php
+                        </thead>
+                        <tbody>
+                        <?php
+                            $cnt = 0;
+                            $holiday = "SELECT * FROM holiday WHERE holiday_date LIKE '%$prev_year%' ORDER BY holiday_date";
+                            $rholiday = mysqli_query($con,$holiday);
+                            if (@mysqli_num_rows($rholiday)) {
+                                while ($holiday_data = mysqli_fetch_array($rholiday)) {
+                                $hol_id = $holiday_data["holiday_id"];
+
+                                if($holiday_data["holiday_date"] < date('Y-m-d')){ ?>
+                                <tr>
+                                    <td align="right"><?php echo number_format(++$cnt); ?>.</td>
+                                    <td><?php echo $holiday_data["holiday_date"]; ?></td>
+                                    <td><?php echo $holiday_data["description"]; ?></td>
+                                    <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                </tr>
+                                <?php
+                                }else{ ?>
+                                <tr onclick="edit_del(<?php echo $hol_id; ?>)" style="cursor: pointer;">
+                                    <td align="right"><?php echo number_format(++$cnt); ?>.</td>
+                                    <td><?php echo $holiday_data["holiday_date"]; ?></td>
+                                    <td><?php echo $holiday_data["description"]; ?></td>
+                                    <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                </tr>
+                                <?php
+                                }
                             }
-                        }
-                    } ?>
-                    </tbody>
-                </table>
+                        } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="w3-col s4 w3-padding w3-row-padding">
+                    <table class="w3-table-all w3-hoverable w3-small">
+                        <thead>
+                            <tr>
+                                <th colspan="4" class="w3-center">CURRENT YEAR HOLIDAYS</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="w3-center">HOLIDAY DATE</th>
+                                <th class="w3-center">HOLIDAY DESCRIPTION</th>
+                                <th class="w3-center">is Special?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                            $cnt = 0;
+                            $holiday = "SELECT * FROM holiday WHERE holiday_date LIKE '%$year%' ORDER BY holiday_date";
+                            $rholiday = mysqli_query($con,$holiday);
+                            if (@mysqli_num_rows($rholiday)) {
+                                while ($holiday_data = mysqli_fetch_array($rholiday)) {
+                                $hol_id = $holiday_data["holiday_id"];
+
+                                if($holiday_data["holiday_date"] < date('Y-m-d',strtotime("-15 days"))){ ?>
+                                <tr>
+                                    <td align="right"><?php echo number_format(++$cnt); ?>.</td>
+                                    <td><?php echo $holiday_data["holiday_date"]; ?></td>
+                                    <td><?php echo $holiday_data["description"]; ?></td>
+                                    <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                </tr>
+                                <?php
+                                }else{ ?>
+                                <tr onclick="edit_del(<?php echo $hol_id; ?>)" style="cursor: pointer;">
+                                    <td align="right"><?php echo number_format(++$cnt); ?>.</td>
+                                    <td><?php echo $holiday_data["holiday_date"]; ?></td>
+                                    <td><?php echo $holiday_data["description"]; ?></td>
+                                    <td class="w3-center"><?php if($holiday_data["is_special"] == 1 ){ echo '<i class="fa-solid fa-check"></i>'; }else{ echo '<i class="fa-solid fa-times"></i>'; }?></td>
+                                </tr>
+                                <?php
+                                }
+                            }
+                        } ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    <?php
+        <?php
+        }
     break;
     case "generate":
-        generate_holiday();
+        if (substr($access_rights_hol, 0, 6) === "A+E+D+") {
+            generate_holiday();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "new-hol":
-        $hol_date = (new DateTime($_POST["hol_date"]))->format("Y-m-d");
-        $hol_name = $_POST["hol_name"];
-        $special = $_POST["is_special"];
-        new_holiday($hol_date,$hol_name,$special);
+        if (substr($access_rights_hol, 0, 2) === "A+") {
+            $hol_date = (new DateTime($_POST["hol_date"]))->format("Y-m-d");
+            $hol_name = $_POST["hol_name"];
+            $special = $_POST["is_special"];
+            new_holiday($hol_date,$hol_name,$special);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "del-hol":
-        $hol_id = $_POST["hol_id"];
-        delete_holiday($hol_id);
+        if (substr($access_rights_hol, 4, 2) === "D+") {
+            $hol_id = $_POST["hol_id"];
+            delete_holiday($hol_id);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "default-pay-type":
-        default_pay_type();
+        if (substr($access_rights, 6, 2) === "B+") {
+            default_pay_type();
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "save-pay-type":
-        $pay_desc = $_POST['pay_desc'];
-        if($_POST['isFactortoRate'] == 'true') $isFactortoRate=1; else $isFactortoRate=0;
-        $factorAmt = $_POST['factorAmt'];
-        if($_POST['tax'] == 'true') $tax=1; else $tax=0;
-        if($_POST['sss'] == 'true') $sss=1; else $sss=0;
-        if($_POST['cola'] == 'true') $cola=1; else $cola=0;
-        if($_POST['month'] == 'true') $month=1; else $month=0;
-        if($_POST['od'] == 'true') $od=1; else $od=0;
-        if($_POST['adj'] == 'true') $adj=1; else $adj=0;
-        if($_POST['neg'] == 'true') $neg=1; else $neg=0;
-        save_pay_type($pay_desc,$isFactortoRate,$factorAmt,$tax,$sss,$cola,$month,$od,$adj,$neg);
+        if (substr($access_rights, 0, 6) === "A+E+D+") {
+            $pay_desc = $_POST['pay_desc'];
+            if($_POST['isFactortoRate'] == 'true') $isFactortoRate=1; else $isFactortoRate=0;
+            $factorAmt = $_POST['factorAmt'];
+            if($_POST['tax'] == 'true') $tax=1; else $tax=0;
+            if($_POST['sss'] == 'true') $sss=1; else $sss=0;
+            if($_POST['cola'] == 'true') $cola=1; else $cola=0;
+            if($_POST['month'] == 'true') $month=1; else $month=0;
+            if($_POST['od'] == 'true') $od=1; else $od=0;
+            if($_POST['adj'] == 'true') $adj=1; else $adj=0;
+            if($_POST['neg'] == 'true') $neg=1; else $neg=0;
+            save_pay_type($pay_desc,$isFactortoRate,$factorAmt,$tax,$sss,$cola,$month,$od,$adj,$neg);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "show-posted-shift":
-        posted_shift($_POST["employee_no"]);
+        if (substr($access_rights_shift, 6, 2) === "B+") {
+            posted_shift($_POST["employee_no"]);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
     case "post-shift":
-        $current_date = (new DateTime($_POST["trans_date"]))->format("Y-m-d");
-        $emp_no = $_POST["employee_no"];
-        post_shift($current_date,$emp_no);
+        if (substr($access_rights_shift, 0, 6) === "A+E+D+") {
+            $current_date = (new DateTime($_POST["trans_date"]))->format("Y-m-d");
+            $emp_no = $_POST["employee_no"];
+            post_shift($current_date,$emp_no);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
+    break;
+    case "post-shift-all":
+        if (substr($access_rights_shift, 0, 6) === "A+E+D+" AND $level>= 8) {
+            $system_date = (new DateTime($_POST["trans_date"]))->format("Y-m-d");
+            post_shift_all($system_date);
+        }else{
+            echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+            return;
+        }
     break;
 
 }
@@ -201,6 +296,49 @@ function post_shift($current_date,$emp_no){
         }
 }
 
+function post_shift_all($system_date){
+    global $db, $db_hris;
+
+    set_time_limit(300);
+    $del_shift = $db->prepare("DELETE FROM $db_hris.`employee_work_schedule` WHERE `trans_date`=:tdate");
+    $del_shift->execute(array(":tdate" => $system_date));
+    $day = date('w', mktime(0, 0, 0, substr($system_date, 5, 2), substr($system_date, 8, 2), substr($system_date, 0, 4)));
+    $master =  $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE !`is_inactive` AND `work_schedule`!=''");
+    $master->execute();
+    if($master->rowCount()){
+        while($master_data = $master->fetch(PDO::FETCH_ASSOC)){
+            set_time_limit(30);
+            $shift = explode(",",$master_data["work_schedule"]);
+            $shift_schedule = $shift[$day];
+            $plot_shift = $db->prepare("INSERT INTO $db_hris.`employee_work_schedule` (`employee_no`, `trans_date`, `shift_code`) VALUES (:emp_no, :tdate, :shift)");
+            $plot_shift->execute(array(":emp_no" => $master_data["employee_no"], ":tdate" => $system_date, ":shift" => $shift_schedule));
+        }
+    }
+    update_time();
+}
+
+function update_time(){
+	global $db, $db_hris;
+
+    $current_date = date('Y-m-d');
+	$config = $db->prepare("SELECT * FROM $db_hris.`_sysconfig` WHERE `config_name`=:config_name");
+	$config->execute(array(":config_name" => 'trans date'));
+	if($config->rowCount()){
+		$config_data = $config->fetch(PDO::FETCH_ASSOC);
+		set_time_limit(300);
+		$sys_date = $config_data["config_value"];
+		$cdate = new DateTime($sys_date);
+		$dateNow = $cdate->modify('+1 day');
+		if($sys_date != $current_date){
+			$update_trans_date = $db->prepare("UPDATE $db_hris.`_sysconfig` SET `config_value`=:cdate WHERE `config_name`=:cname");
+			$update_trans_date->execute(array(":cdate" => $dateNow->format('Y-m-d'), ":cname"=> 'trans date'));
+			echo json_encode(array("status" => "success", "message" => "DONE POSTING SHIFT FOR $sys_date"));
+		}else{
+			echo json_encode(array("status" => "success", "message" => "DONE POSTING SHIFT FOR $sys_date"));
+		}
+	}
+}
+
 function posted_shift($emp_no){
     global $db, $db_hris; ?>
     <div class="w3-col s4">
@@ -251,7 +389,7 @@ function new_holiday($hol_date,$hol_name,$special){
     $check_holiday = $db->prepare("SELECT * FROM $db_hris.`holiday` WHERE `holiday_date`=:hol_date");
     $check_holiday->execute(array(":hol_date" => $hol_date));
     if ($check_holiday->rowCount()){
-        echo json_encode(array("status" => "Exist"));
+        echo json_encode(array("status" => "error", "message" => "Holiday date $hol_date already exist!"));
     }else{
         $new_holiday = $db->prepare("INSERT INTO $db_hris.`holiday`(`holiday_date`,`is_special`,`description`) VALUES (:date, :special, :desc)");
         $new_holiday->execute(array(":date" => $hol_date, ":special" => $special, ":desc" => $hol_name));
@@ -434,4 +572,42 @@ function default_pay_type(){ ?>
         }
     </script>
     <?php
+}
+
+function get_tabs($access_rights,$access_rights_grp,$access_rights_memo,$access_rights_hol,$level){
+    $tabs = array();
+    if(substr($access_rights_grp, 6, 2) === "B+" AND substr($access_rights_memo, 6, 2) === "B+" AND substr($access_rights_hol, 6, 2) === "B+"){
+        $active = "pay_group";
+    }else if (substr($access_rights_grp, 6, 2) === "B+" AND substr($access_rights_memo, 6, 2) === "B+") {
+        $active = "pay_group";
+    }else if (substr($access_rights_memo, 6, 2) === "B+" AND substr($access_rights_hol, 6, 2) === "B+") {
+        $active = "swipe";
+    }else if (substr($access_rights_grp, 6, 2) === "B+" AND substr($access_rights_hol, 6, 2) === "B+") {
+        $active = "pay_group";
+    }else{
+        if (substr($access_rights_grp, 6, 2) === "B+") {
+            $active = "pay_group";
+        }
+        if (substr($access_rights_memo, 6, 2) === "B+") {
+            $active = "swipe";
+        }
+        if (substr($access_rights_hol, 6, 2) === "B+") {
+            $active = "hol";
+        }
+    }
+    if (substr($access_rights_grp, 6, 2) === "B+") {
+        $tabs[] = array("id" => "pay_group", "text" => "Payroll Group");
+    }
+    if (substr($access_rights_memo, 6, 2) === "B+") {
+        $tabs[] = array("id" => "swipe", "text" => "Swipe Memo");
+    }
+    if (substr($access_rights_hol, 6, 2) === "B+") {
+        $tabs[] = array("id" => "hol", "text" => "Holidays");
+    }
+    if($level > 9 AND substr_count($access_rights, "A+E+D+B+P+")){
+        $tabs[] = array("id" => "pay_type", "text" => "Payroll Type");
+        $tabs[] = array("id" => "sys_config", "text" => "System Configuration");
+    }
+    echo json_encode(array("status" => "success", "tabs" => $tabs, "active" => $active));
+  
 }

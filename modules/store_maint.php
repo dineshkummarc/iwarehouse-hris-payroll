@@ -1,6 +1,19 @@
 <?php
-$program_code = 3;
+$program_code = 8;
 require_once('../common/functions.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 ?>
 <div class="w3-col s12 w3-panel w3-small">
     <div class="w3-col s12 w3-margin-top w3-margin-bottom w3-padding">
@@ -111,6 +124,8 @@ require_once('../common/functions.php');
                     $("#store").val("");
                     $("#address").val("");
                     get_store();
+                }else{
+                    w2alert(jObject.message);
                 }
             },
             error: function () {
@@ -138,6 +153,8 @@ require_once('../common/functions.php');
                     $('button#remove').hide();
                     $('button#save').text("Save");
                     get_store();
+                }else{
+                    w2alert(jObject.message);
                 }
             },
             error: function () {
@@ -164,6 +181,8 @@ require_once('../common/functions.php');
                     $('button#remove').hide();
                     $('button#save').text("Save");
                     get_store();
+                }else{
+                    w2alert(jObject.message);
                 }
             },
             error: function () {

@@ -1,9 +1,20 @@
 <?php
 
-$program_code = 5;
+$program_code = 39;
 require_once('../common/functions.php');
-
-include('../modules/system/system.config.php');
+include("../common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+};
 ?>
 <style type="text/css">
 .tableFixHead,
@@ -49,7 +60,7 @@ include('../modules/system/system.config.php');
           if(_return.status === "success"){
             get_holiday();
           }else{
-            w2alert("Sorry, No DATA found!");
+            w2alert(_return.message);
           }
         }
       },
@@ -137,7 +148,7 @@ include('../modules/system/system.config.php');
             }
             get_holiday();
           }else{
-            w2alert("Holiday already exist!");
+            w2alert(_return.message);
           }
         }
       },
