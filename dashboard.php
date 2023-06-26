@@ -1,101 +1,113 @@
 <?php
-$program_code = 1;
+$program_code_work = 1; //workforce
+$program_code_group = 37; //payroll group
+$program_code_late = 33; //late reports
+$program_code_absent = 34; //absent reports
+$program_code_pay = 16;
 include('modules/system/system.config.php');
 include('session.php');
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-if($level['user_level'] < $program_code){
-    exit();
-}
-if (!isset($_SESSION["wksfr"])) {
-    $wks = new DateTime(date("m/01/Y"));
-    $wks->modify("-3 months");
-    $_SESSION["wksfr"] = $wks->format("Y-m-d");
-    $_SESSION["wksto"] = date("Y-m-d");
-}
-
-function emp_total(){
-    global $db, $db_hris;
-    $count_emp = $db->prepare("SELECT count(*) FROM $db_hris.`master_data` WHERE !`is_inactive`");
-    $count_emp->execute();
-    if ($count_emp->rowCount()) {
-        $number_of_rows = $count_emp->fetchColumn();
-    }else{
-        $number_of_rows = 0;
+include("common_function.class.php");
+$_SESSION['system_menu'] = 0;
+$_SESSION['system_open'] = 0;
+$cfn = new common_functions();
+$access_rights_work = $cfn->get_user_rights($program_code_work);
+$access_rights_grp = $cfn->get_user_rights($program_code_group);
+$access_rights_late = $cfn->get_user_rights($program_code_late);
+$access_rights_abs = $cfn->get_user_rights($program_code_absent);
+$access_rights_pay = $cfn->get_user_rights($program_code_pay);
+$plevel = 1;
+$level = $cfn->get_user_level();
+if($level <= $plevel ){
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}else{
+    if (!isset($_SESSION["graph_fr"])) {
+        $fr = new DateTime(date("m/01/Y"));
+        $fr->modify("-3 months");
+        $_SESSION["graph_fr"] = $fr->format("Y-m-d");
+        $_SESSION["graph_to"] = date("Y-m-d");
     }
-    return $number_of_rows;
-}
 
 
-function running_rate_total(){
-    global $db, $db_hris;
-    $emp_rate = $db->prepare("SELECT SUM(`employee_rate`.`total_pay`) AS `total_rate_pay` FROM $db_hris.`employee_rate`,$db_hris.`master_data` WHERE `master_data`.`is_inactive`=:inactv AND `employee_rate`.`employee_no`=`master_data`.`employee_no`");
-    $emp_rate->execute(array(":inactv" => 0));
-    if ($emp_rate->rowCount()) {
-        $emp_rate_data = $emp_rate->fetch(PDO::FETCH_ASSOC);
-
-        $total_rate = $emp_rate_data['total_rate_pay'];
-
-    }else{
-        $total_rate = 0;
+    function emp_total(){
+        global $db, $db_hris;
+        $count_emp = $db->prepare("SELECT count(*) FROM $db_hris.`master_data` WHERE !`is_inactive`");
+        $count_emp->execute();
+        if ($count_emp->rowCount()) {
+            $number_of_rows = $count_emp->fetchColumn();
+        }else{
+            $number_of_rows = 0;
+        }
+        return $number_of_rows;
     }
-    return $total_rate;
-}
 
-function total_net_pay(){
-    global $db, $db_hris;
-    $emp_net_pay = $db->prepare("SELECT SUM(`net_pay`) AS `net_pay` FROM $db_hris.`payroll_trans` WHERE `is_posted`");
-    $emp_net_pay->execute();
-    if ($emp_net_pay->rowCount()) {
-        $emp_net_data = $emp_net_pay->fetch(PDO::FETCH_ASSOC);
 
-        $total_running_net = $emp_net_data['net_pay'];
+    function running_rate_total(){
+        global $db, $db_hris;
+        $emp_rate = $db->prepare("SELECT SUM(`employee_rate`.`total_pay`) AS `total_rate_pay` FROM $db_hris.`employee_rate`,$db_hris.`master_data` WHERE `master_data`.`is_inactive`=:inactv AND `employee_rate`.`employee_no`=`master_data`.`employee_no`");
+        $emp_rate->execute(array(":inactv" => 0));
+        if ($emp_rate->rowCount()) {
+            $emp_rate_data = $emp_rate->fetch(PDO::FETCH_ASSOC);
 
-    }else{
-        $total_running_net = 0;
+            $total_rate = $emp_rate_data['total_rate_pay'];
+
+        }else{
+            $total_rate = 0;
+        }
+        return $total_rate;
     }
-    return $total_running_net;
-}
 
-function payroll_date(){
-    global $db, $db_hris;
-    $pay = $db->prepare("SELECT `cutoff_date`,`payroll_date` FROM $db_hris.`payroll_group` WHERE `group_name`=:no");
-    $pay->execute(array(":no"=> 100));
-    if ($pay->rowCount()) {
-        $pay_data = $pay->fetch(PDO::FETCH_ASSOC);
+    function total_net_pay(){
+        global $db, $db_hris;
+        $emp_net_pay = $db->prepare("SELECT SUM(`net_pay`) AS `net_pay` FROM $db_hris.`payroll_trans` WHERE `is_posted`");
+        $emp_net_pay->execute();
+        if ($emp_net_pay->rowCount()) {
+            $emp_net_data = $emp_net_pay->fetch(PDO::FETCH_ASSOC);
 
-        $paydate = date("M j",strtotime($pay_data['cutoff_date'])).' to '.date("M j".", "."Y",strtotime($pay_data['payroll_date']));
+            $total_running_net = $emp_net_data['net_pay'];
 
-    }else{
-        $paydate = 0;
+        }else{
+            $total_running_net = 0;
+        }
+        return $total_running_net;
     }
-    return $paydate;
-}
 
-function coming_net_pay(){
-    global $db, $db_hris;
-    $emp_net_pay = $db->prepare("SELECT SUM(`net_pay`) AS `net_pay` FROM $db_hris.`payroll_trans` WHERE !`is_posted`");
-    $emp_net_pay->execute();
-    if ($emp_net_pay->rowCount()) {
-        $emp_net_data = $emp_net_pay->fetch(PDO::FETCH_ASSOC);
+    function payroll_date(){
+        global $db, $db_hris;
+        $pay = $db->prepare("SELECT `cutoff_date`,`payroll_date` FROM $db_hris.`payroll_group` WHERE `group_name`=:no");
+        $pay->execute(array(":no"=> 100));
+        if ($pay->rowCount()) {
+            $pay_data = $pay->fetch(PDO::FETCH_ASSOC);
 
-        $total_running_net = $emp_net_data['net_pay'];
+            $paydate = date("M j",strtotime($pay_data['cutoff_date'])).' to '.date("M j".", "."Y",strtotime($pay_data['payroll_date']));
 
-    }else{
-        $total_running_net = 0;
+        }else{
+            $paydate = 0;
+        }
+        return $paydate;
     }
-    return $total_running_net;
+
+    function coming_net_pay(){
+        global $db, $db_hris;
+        $emp_net_pay = $db->prepare("SELECT SUM(`net_pay`) AS `net_pay` FROM $db_hris.`payroll_trans` WHERE !`is_posted`");
+        $emp_net_pay->execute();
+        if ($emp_net_pay->rowCount()) {
+            $emp_net_data = $emp_net_pay->fetch(PDO::FETCH_ASSOC);
+
+            $total_running_net = $emp_net_data['net_pay'];
+
+        }else{
+            $total_running_net = 0;
+        }
+        return $total_running_net;
+    }
 }
-
-
 ?>
 <div class="w3-col l12 m12 s12 w3-mobile w3-responsive w3-padding">
     <div class="w3-col l2 m2 s2 w3-responsive w3-mobile w3-padding-right">
         <div class="panel w3-border w3-round-large w3-flat-carrot">
             <header class="w3-container w3-padding-large">
-                <h3><b><?php echo number_format(emp_total(),0); ?></b><i class="fa-solid fa-user-group w3-right w3-margin-top" onclick="system_menu(1)" style="cursor: pointer;"></i></h3>
+                <h3><b><?php echo number_format(emp_total(),0); ?></b><i class="fa-solid fa-user-group w3-right w3-margin-top" <?php if (substr($access_rights_work, 6, 2) === "B+") { ?> onclick="system_menu(1)" <?php } ?> style="cursor: pointer;"></i></h3>
                 <span class="w3-small w3-text-light-black">Total Active Employee</span>
             </header>
             <p class="w3-padding w3-border-top w3-border-white">Employee</p>
@@ -122,7 +134,7 @@ function coming_net_pay(){
     <div class="w3-col l3 m3 s3 w3-responsive w3-mobile w3-padding-right">
         <div class="panel w3-border w3-round-large w3-flat-wet-asphalt">
             <header class="w3-container w3-padding-large">
-                <h3><b><?php echo payroll_date(); ?></b><i class="fa-solid fa-calendar w3-right w3-margin-top" onclick="system_menu(3)" style="cursor: pointer;"></i></h3>
+                <h3><b><?php echo payroll_date(); ?></b><i class="fa-solid fa-calendar w3-right w3-margin-top" <?php if (substr($access_rights_grp, 6, 2) === "B+") { ?> onclick="system_menu(3)" <?php } ?>style="cursor: pointer;"></i></h3>
                 <span class="w3-small w3-text-light-black">Payroll Date</span>
             </header>
             <p class="w3-padding w3-border-top w3-border-white">Payroll Cut-Off & Payroll Date</p>
@@ -131,9 +143,19 @@ function coming_net_pay(){
     <div class="w3-col l3 m3 s3 w3-responsive w3-mobile w3-padding-right">
         <div class="panel w3-border w3-round-large w3-flat-belize-hole">
             <header class="w3-container w3-padding-large">
-                <h3><b><span id="clock"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i>refreshing..</span><i class="fa-solid fa-clock w3-right w3-margin-top"></i></b></h3>
+                <h3><b><span id="clock" class="
+                    <?php 
+                    $system_date = $cfn->sysconfig("trans date");
+                    if($system_date !== date('Y-m-d')){
+                        $red = "w3-text-red";
+                        $text = ' | System Current Date is '.date("D - F j, Y", strtotime($system_date));
+                    }else{
+                        $red = "";
+                        $text = "";
+                    }
+                    echo $red; ?>"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i>refreshing..</span><i class="fa-solid fa-clock w3-right w3-margin-top"></i></b></h3>
                 <input type="hidden" value="Get Server Time" id="clock_btn" onclick="timer_function();">
-                <span class="w3-small w3-text-light-black"><?php echo date("D - F j, Y"); ?></span>
+                <span class="w3-small w3-text-light-black <?php echo $red; ?>"><?php  echo date("D - F j, Y");  ?><?php echo $text; ?></span>
             </header>
             <p class="w3-padding w3-border-top w3-border-white">Date & Time</p>
         </div>
@@ -143,15 +165,18 @@ function coming_net_pay(){
     <div class="w3-col l6 m6 s6 w3-responsive w3-mobile w3-container">
         <div class="w3-col l12 m12 s12 w3-responsive w3-mobile w3-border w3-container w3-round-medium">
             <div class="w3-padding-medium w3-bar">
-                <input class="w3-small w3-margin-right w3-bar-item w3-transparent w3-border-bottom date" id="fr" value="<?php echo (new DateTime($_SESSION["wksfr"]))->format("m/d/Y"); ?>">
-                <input class="w3-small w3-bar-item w3-transparent w3-border-bottom date" id="to" value="<?php echo (new DateTime($_SESSION["wksto"]))->format("m/d/Y"); ?>"/>
+                <?php if (substr($access_rights_pay, 2, 2) === "E+") { ?>
+                <input class="w3-small w3-margin-right w3-bar-item w3-transparent w3-border-bottom date" id="fr" value="<?php echo (new DateTime($_SESSION["graph_fr"]))->format("m/d/Y"); ?>">
+                <input class="w3-small w3-bar-item w3-transparent w3-border-bottom date" id="to" value="<?php echo (new DateTime($_SESSION["graph_to"]))->format("m/d/Y"); ?>"/>
+                <?php } if (substr($access_rights_pay, 6, 2) === "B+") { ?>
                 <button class="w3-bar-item w3-tiny w3-hover-orange w3-hover-text-white w3-border w3-round-medium w3-margin-left" style="padding: 5px 8px;" id="refresh" onclick="refresh();">REFRESH</button>
+                <?php } ?>
             </div>
             <?php
             $year = date('Y');
             $current_date = date('Y-m-d');
-            $from = $_SESSION["wksfr"];
-            $to = $_SESSION["wksto"];
+            $from = $_SESSION["graph_fr"];
+            $to = $_SESSION["graph_to"];
             $query = $con->query("SELECT SUM(`net_pay`) AS `net_pay`,SUM(`deduction`) AS `deduction`,`payroll_date` AS `pay_date` FROM `payroll_trans` WHERE `is_posted` AND `payroll_date` BETWEEN '$from' AND '$to' GROUP BY `payroll_date` ORDER BY `payroll_date` ASC LIMIT 10");
             foreach($query as $data){
                 $payroll_date[] = $data['pay_date'];
@@ -286,7 +311,7 @@ function coming_net_pay(){
                 } ?>
                 </tbody>
             </table>
-            <p class="w3-padding w3-border-top w3-border-white">TOP 10 LATE OF <?php echo strtoupper(date('F Y')); ?><ion-icon class="w3-right w3-xlarge w3-hover-text-grey" style="cursor: pointer;" name="eye-outline" onclick="system_menu(33)"></ion-icon></p>
+            <p class="w3-padding w3-border-top w3-border-white">TOP 10 LATE OF <?php echo strtoupper(date('F Y')); ?><?php if (substr($access_rights_late, 6, 2) === "B+") { ?><ion-icon class="w3-right w3-xlarge w3-hover-text-grey" style="cursor: pointer;" name="eye-outline" onclick="system_menu(33)"></ion-icon><?php } ?></p>
         </div>
     </div>
     <div class="w3-col l3 m3 s3 w3-responsive w3-mobile w3-padding-right">
@@ -319,7 +344,7 @@ function coming_net_pay(){
                 } ?>
                 </tbody>
             </table>
-            <p class="w3-padding w3-border-top w3-border-white">TOP 10 ABSENTEE OF <?php echo strtoupper(date('F Y')); ?><ion-icon class="w3-right w3-xlarge w3-hover-text-grey" style="cursor: pointer;" name="eye-outline" onclick="system_menu(34)"></ion-icon></p>
+            <p class="w3-padding w3-border-top w3-border-white">TOP 10 ABSENTEE OF <?php echo strtoupper(date('F Y')); ?><?php if (substr($access_rights_abs, 6, 2) === "B+") { ?><ion-icon class="w3-right w3-xlarge w3-hover-text-grey" style="cursor: pointer;" name="eye-outline" onclick="system_menu(34)"></ion-icon><?php } ?></p>
         </div>
     </div>
 </div>
@@ -371,12 +396,12 @@ function refresh() {
     var div = $('#main');
     w2utils.lock(div, 'Please wait..', true);
     $.ajax({
-        url: "page/master1",
+        url: "page/system_menu.php",
         type: "post",
         data: {
-            cmd: "refresh-workschedule",
-            fr: $("#fr").val(),
-            to: $("#to").val()
+            cmd: "refresh-graph",
+            graph_fr: $("#fr").val(),
+            graph_to: $("#to").val()
         },
         success: function (data) {
             w2utils.unlock(div);

@@ -1,13 +1,19 @@
 <?php
-$program_code = 3;
+$program_code = 37;
 include('modules/system/system.config.php');
 include('session.php');
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-if($level['user_level'] <= $program_code){
-    exit();
+include("common_function.class.php");
+$cfn = new common_functions();
+$level = $cfn->get_user_level();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+if (substr($access_rights, 6, 2) !== "B+") {
+  if($level <= $plevel ){
+      echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+      return;
+  }
+  echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+  return;
 }
 ?>
 <style type="text/css">
@@ -25,8 +31,10 @@ if($level['user_level'] <= $program_code){
               <th>Cut Off Date</th>
               <th>Payroll Date</th>
               <th>
+                  <?php if (substr($access_rights, 0, 2) === "A+") { ?>
                   <a onclick="new_pay_group()" class="w3-hover-text-orange" id="new_pay"><ion-icon class="w3-medium w3-padding-top" name="add-circle-outline"></ion-icon></a>
                   <a onclick="cancel_pay_group()" class="w3-hover-text-red w3-hide" id="cancel_pay"><ion-icon class="w3-medium w3-padding-top" name="remove-circle-outline"></ion-icon></a>
+                  <?php } ?>
               </th>
               <th></th>
           </tr>
@@ -34,10 +42,14 @@ if($level['user_level'] <= $program_code){
       <tbody>
           <tr class="w3-hide" id="new_set">
               <td></td>
-              <td><input id="pay_name" name="pay_name" style="padding: 2px 4px; width: 100%;" class="w3-border w3-border-black w3-round-medium"></td>
+              <td><input id="pay_name" name="pay_name" style="padding: 2px 4px; width: 100%;" class="w3-border w3-round-medium"></td>
               <td><input id="cuttoff_date" name="cuttoff_date" class="date"></td>
               <td><input id="payroll_date" name="payroll_date" class="date"></td>
-              <td><input type="checkbox" onclick="save_pay_group(0)">&nbsp;SAVE</td>
+              <td>
+                  <?php if (substr($access_rights, 0, 2) === "A+") { ?>
+                    <input type="checkbox" onclick="save_pay_group(0)">&nbsp;SAVE
+                  <?php } ?>
+              </td>
               <td></td>
           </tr>
       <?php
@@ -62,8 +74,16 @@ if($level['user_level'] <= $program_code){
                           <td><input id="cuttoff_date<?php echo $code ?>" name="cuttoff_date" class="date" value="<?php echo date('m/d/Y',strtotime($pay_group_data['cutoff_date'])); ?>
                       "></td>
                           <td><input id="payroll_date<?php echo $code ?>" name="payroll_date" class="date" value="<?php echo date('m/d/Y',strtotime($pay_group_data['payroll_date'])); ?>"></td>
-                          <td><input type="checkbox" onclick="save_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;SAVE</td>
-                          <td><input type="checkbox" onclick="del_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;DEL</td>
+                          <td>
+                            <?php if (substr($access_rights, 0, 4) === "A+E+") { ?>
+                            <input type="checkbox" onclick="save_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;SAVE
+                            <?php } ?>
+                          </td>
+                          <td>
+                            <?php if (substr($access_rights, 4, 2) === "D+") { ?>
+                            <input type="checkbox" onclick="del_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;DEL
+                            <?php } ?>
+                          </td>
                       </tr>
                   <?php
                   }else{ ?>
@@ -72,8 +92,16 @@ if($level['user_level'] <= $program_code){
                           <td><?php echo $emp_status_data["description"]; ?></td>
                           <td><input id="cuttoff_date<?php echo $emp_status_data['employment_status_code']; ?>" name="cuttoff_date" class="date"></td>
                           <td><input id="payroll_date<?php echo $emp_status_data['employment_status_code']; ?>" name="payroll_date" class="date"></td>
-                          <td><input type="checkbox" onclick="save_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;SAVE</td>
-                          <td><input type="checkbox" onclick="del_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;DEL</td>
+                          <td>
+                            <?php if (substr($access_rights, 0, 4) === "A+E+") { ?>
+                            <input type="checkbox" onclick="save_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;SAVE
+                            <?php } ?>
+                          </td>
+                          <td>
+                            <?php if (substr($access_rights, 4, 2) === "D+") { ?>
+                            <input type="checkbox" onclick="del_pay_group(<?php echo $emp_status_data['employment_status_code']; ?>)">&nbsp;DEL
+                            <?php } ?>
+                          </td>
                       </tr>
                   <?php 
                   }
@@ -112,7 +140,7 @@ if($level['user_level'] <= $program_code){
               if(_return.status === "success"){
                 pay_group();
               }else{
-                w2alert("Sorry, There was a problem in server connection!");
+                w2alert(_return.message);
               }
             }
           },
@@ -138,7 +166,7 @@ if($level['user_level'] <= $program_code){
               if(_return.status === "success"){
                 pay_group();
               }else{
-                w2alert("Sorry, There was a problem in server connection!");
+                w2alert(_return.message);
               }
             }
           },
@@ -175,7 +203,7 @@ if($level['user_level'] <= $program_code){
             if(_return.status === "success"){
               pay_group();
             }else{
-              w2alert("Sorry, There was a problem in server connection!");
+              w2alert(_return.message);
             }
           }
         },

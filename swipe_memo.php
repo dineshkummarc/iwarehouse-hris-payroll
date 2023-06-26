@@ -1,14 +1,20 @@
 <?php
 global $db_hris, $db;
-$program_code = 3;
+$program_code = 38;
 include('modules/system/system.config.php');
 include('session.php');
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-if($level['user_level'] <= $program_code){
-    exit();
+include("common_function.class.php");
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
 }
 ?>
 <style type="text/css">
@@ -79,8 +85,10 @@ if($level['user_level'] <= $program_code){
                 </select>
             </td>
             <td>
+                <?php if (substr($access_rights, 0, 2) === "A+") { ?>
                 <button class="w3-small w3-margin-right" id="save" onclick="save_data();"><ion-icon class="w3-large" name="save-outline" style="padding-top: 5px;"></ion-icon></button>
-                <button class="w3-small w3-hide" id="clear" onclick="clear_data();"><ion-icon class="w3-large" name="trash-outline" style="padding-top: 5px;"></ion-icon></button>
+                <button class="w3-small w3-hide" id="clear" onclick="clear_data();"><ion-icon class="w3-large" name="refresh-outline" style="padding-top: 5px;"></ion-icon></button>
+                <?php } ?>
             </td>
             <td colspan="2"></td>
         </tr>
@@ -140,6 +148,7 @@ if($level['user_level'] <= $program_code){
         $('select#penalty_to').val('');
         $('select#penalized').val('');
         $('select#update_time').val('');
+        $('#clear').addClass('w3-hide');
     }
 
     function save_data(){
@@ -170,7 +179,7 @@ if($level['user_level'] <= $program_code){
                         $('#save').addClass('w3-hide');
                         $('#clear').addClass('w3-hide');
                     }else{
-                        w2alert("Sorry, there was a problem in server connection!");
+                        w2alert(_return.message);
                     }
                 }
             },
@@ -201,7 +210,7 @@ function edit_data(memo_no){
                     $('#save').removeClass('w3-hide');
                     $('#clear').removeClass('w3-hide');
                 }else{
-                    w2alert("Sorry, No DATA found!");
+                    w2alert(_return.message);
                 }
             }
         },

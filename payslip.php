@@ -1,20 +1,22 @@
 <?php
 
-$program_code = 3;
+$program_code = 16;
+require_once('session.php');
+require_once('modules/system/system.config.php');
 include("common_function.class.php");
-$cfn = new common_functions();
-
-include('modules/system/system.config.php');
-include('session.php');
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-if($level['user_level'] <= $program_code){
-    exit();
-}
 include("function/payroll_payslip.php");
-
+$cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 4) !== "B+P+") {
+    if($level <= $plevel ){
+        echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+        return;
+    }
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
+}
 $group_no = $_GET["pay_group"];
 $store = $_GET["store"];
 $payroll_date=$cfn->datefromtable($_GET["date"]);
@@ -77,6 +79,7 @@ if (@mysqli_num_rows($payroll_group)) {
             window.onload = function () {
               window.print();
             };
+            JsBarcode("#barcode").init();
         </script>
   <?php
 }

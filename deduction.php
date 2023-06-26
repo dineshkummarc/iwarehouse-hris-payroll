@@ -1,20 +1,21 @@
 <?php
-
+$program_code = 18;
 include('session.php');
 include('modules/system/system.config.php');
-
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-$program_code = 3;
-
-if($level['user_level'] < $program_code){
-    echo "No Access rights!!";
-    exit();
-};
-include('common_function.class.php');
+include("common_function.class.php");
+global $db, $db_hris;
 $cfn = new common_functions();
+$access_rights = $cfn->get_user_rights($program_code);
+$plevel = $cfn->get_program_level($program_code);
+$level = $cfn->get_user_level();
+if (substr($access_rights, 6, 2) !== "B+") {
+  if($level <= $plevel ){
+    echo json_encode(array("status" => "error", "message" => "Higher level required!"));
+    return;
+  }
+  echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+  return;
+}
 
 ?>
 <div class="w3-orange w3-text-white w3-padding">DEDUCTION MAINTENANCE</div>
@@ -49,15 +50,16 @@ $cfn = new common_functions();
       <?php
           
       $cnt=0;
-      if($level['user_level'] > 8){
+      if(number_format($level, 2) > number_format(8, 2)){
         $filter = "";
       }else{
         $filter = "WHERE !`is_computed`";
       }
-      $deduction=  mysqli_query($con, "SELECT * FROM `deduction` $filter ORDER BY `deduction_label`");
-      if(@mysqli_num_rows($deduction))
-        while($deduction_data=  mysqli_fetch_array($deduction)){
-          if(number_format($deduction_data["deduction_type"])==  number_format(1)){
+      $deduction = $db->prepare("SELECT * FROM $db_hris.`deduction` $filter ORDER BY `deduction_label`");
+      $deduction->execute();
+      if($deduction->rowCount()){
+        while ($deduction_data = $deduction->fetch(PDO::FETCH_ASSOC)) {
+          if(number_format($deduction_data["deduction_type"],2) ==  number_format(1,2)){
             $deduction_type = 'Invoice';
           }else{
             $deduction_type = 'Others';
@@ -76,6 +78,7 @@ $cfn = new common_functions();
             <td align="center"><?php if($deduction_data["is_inactive"]) echo "Inactive"; else echo "Active"; ?></td>
           </tr>
       <?php            
+        }
       }
     ?>
     </tbody>
@@ -115,7 +118,7 @@ $cfn = new common_functions();
             $('input#end[value="' + _return.end + '"]').click();
             $('#reset').removeClass("w3-hide");
           }else{
-            w2alert("Sorry, No DATA found!");
+            w2alert(_return.message);
           }
         }
       },
@@ -152,10 +155,19 @@ $cfn = new common_functions();
         ded_sched: ded_sched
       },
       success: function (data){
-        system_menu(18);
+        if (data !== ""){
+          var _return = jQuery.parseJSON(data);
+          if(_return.status === "success"){
+            system_menu(18);
+          }else{
+            w2alert(_return.message);
+          }
+        }else{
+          w2alert("Sorry, There was a problem in server connection!");
+        }
       },
       error: function (){
-        w2alert("Sorry, there was a problem in server connection!");
+        w2alert("Sorry, There was a problem in server connection!");
       }
     })
   }

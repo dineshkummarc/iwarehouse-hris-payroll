@@ -1,18 +1,15 @@
 <?php
 
-$program_code = 10;
+$program_code = 3;
 include("common_function.class.php");
 $cfn = new common_functions();
 include('modules/system/system.config.php');
 include('session.php');
-
-$check_level = mysqli_query($con, "SELECT `user_level` FROM `_user` where `user_id`='".$session_name."'");
-$level = mysqli_fetch_array($check_level);
-
-if($level['user_level'] < $program_code){
-    exit();
+$access_rights = $cfn->get_user_rights($program_code);
+if (substr($access_rights, 6, 2) !== "B+") {
+    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+    return;
 }
-
 ?>
 <style type="text/css">
 .tableFixHead,

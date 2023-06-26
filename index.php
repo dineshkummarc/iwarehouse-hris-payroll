@@ -131,22 +131,47 @@ $(document).ready(function(){
                     },
                     success: function (data) {
                         if (data == "success"){
-                            window.location = "home";
+                            $('#login_text').text('POSTING SHIFT');
+                            post_shift();
                         }else{
                             $('#err_login').html(data);
+                            setTimeout(function(){
+                                $('#err_login').text('');
+                            },3000);
+                            $('#login_text').text('CONTINUE');
+                            $('#login_btn').prop('disabled', false);
+                            $('#username').prop('disabled', false);
+                            $('#password').prop('disabled', false);
                         }
-                        setTimeout(function(){
-                            $('#err_login').text('');
-                        },3000);
-                        $('#login_text').text('CONTINUE');
-                        $('#login_btn').prop('disabled', false);
-                        $('#username').prop('disabled', false);
-                        $('#password').prop('disabled', false);
                     }
                 });
             }
         }
     });
+
+    function post_shift(){
+        $.ajax({
+            url: 'page/login',
+            type: 'post',
+            data: { 
+                cmd: 'post-shift'
+            },
+            success: function (data) {
+                if (data == "success"){
+                    window.location = "home";
+                }else{
+                    $('#err_login').html(data);
+                }
+                setTimeout(function(){
+                    $('#err_login').text('');
+                },3000);
+                $('#login_text').text('CONTINUE');
+                $('#login_btn').prop('disabled', false);
+                $('#username').prop('disabled', false);
+                $('#password').prop('disabled', false);
+            }
+        });
+    }
 
 
     //reg
@@ -172,7 +197,7 @@ $(document).ready(function(){
             },
             success: function (data) {
                 if (data == "success"){
-                    window.location = "./home";
+                    window.location = "home";
                 }else{
                     $('#err_login').html(data);
                     $('#make_uid').val('');
