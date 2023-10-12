@@ -1,0 +1,126 @@
+    /*radio-btn*/
+    .radio-btn {
+        display: flex;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        width: 50%;
+    }
+    .radio-btn div {
+        position: relative;
+        flex: 1;
+    }
+    .radio-btn input {
+        width: 100%;
+        height: 30px;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .radio-btn label {
+        position: absolute;
+        top: 0; left: 0;
+        color: black;
+        width: 100%;
+        height: 100%;
+        background: #C3C7C7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .radio-btn div:last-child label {
+        border-right: 0;
+    }
+    .radio-btn input:checked + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
+    .radio-btn input:hover + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
+    /*for sched*/
+    .radio-btnsched {
+        display: flex;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        width: 50%;
+    }
+    .radio-btnsched div {
+        position: relative;
+        flex: 1;
+    }
+    .radio-btnsched input {
+        width: 100%;
+        height: 30px;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .radio-btnsched label {
+        position: absolute;
+        top: 0; left: 0;
+        color: black;
+        width: 100%;
+        height: 100%;
+        background: #C3C7C7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .radio-btnsched div:last-child label {
+        border-right: 0;
+    }
+    .radio-btnsched input:checked + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
+    .radio-btnsched input:hover + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
+    /* days & months */
+    .radio-sched {
+        display: flex;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        width: 100%;
+    }
+    .radio-sched div {
+        position: relative;
+        flex: 1;
+    }
+    .radio-sched input {
+        width: 100%;
+        height: 30px;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .radio-sched label {
+        position: absolute;
+        top: 0; left: 0;
+        color: black;
+        width: 100%;
+        height: 100%;
+        background: #C3C7C7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .radio-sched div:last-child label {
+        border-right: 0;
+    }
+    .radio-sched input:checked + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
+    .radio-sched input:hover + label {
+        background: #DCDCDC;
+        font-weight: 500;
+        color: black;
+    }
