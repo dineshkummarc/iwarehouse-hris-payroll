@@ -145,8 +145,9 @@ class common_functions
         $del->execute(array(":tdate" => $current_date));
         $day = date('w', mktime(0, 0, 0, substr($current_date, 5, 2), substr($current_date, 8, 2), substr($current_date, 0, 4)));
         $master =  $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE !`is_inactive` AND `work_schedule`!=''");
+        $master->execute();
         if ($master->rowCount()) {
-            while ($master_data =  mysqli_fetch_array($master)) {
+            while ($master_data = $master->fetch(PDO::FETCH_ASSOC)) {
                 set_time_limit(30);
                 $shift = explode(",", $master_data["work_schedule"]);
                 $shift_schedule = $shift[$day];

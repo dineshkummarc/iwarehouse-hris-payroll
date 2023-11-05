@@ -7,5 +7,5 @@ $prog_open = "LOG-OUT";
 $cfn->log_activity($prog_open);
 session_unset();
 session_destroy();
-header("Location:../iWarehouseV2");
+header("Location:../iWarehouse");
 ?>
