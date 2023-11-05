@@ -200,6 +200,7 @@ Here are some features of the system
 	*	This module is the system configuration for the system. Cannot be altered for security purposes. Only the admin have the access
 
 ***NOTE: SQL FILE NOT INCLUDED KINDLY DM IF YOU WANT***
+</br>
 ***FOR MORE INFOR ABOUT THIS SYSTEM KINDLY DM ME @ judithekuletz.ja@gmail.com***
 
 
