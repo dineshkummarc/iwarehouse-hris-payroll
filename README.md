@@ -84,7 +84,11 @@ Here are some features of the system
 **Deductions**
 *	Show all deduction list
 *	Encode/Update of deductions option
-*	Employee Deductions
+*	MID & END
+*		MID - deduct deduction every 1st payroll cut off
+*		END - deduct deduction every 2nd payroll cut off
+
+**Employee Deductions**
 *	Show deduction of such employee
 *	Show deduction employee ledger
 *	Encode & update Employee Deductions
@@ -95,8 +99,14 @@ Here are some features of the system
 **Employee BioTrans**
 *	Show Employee list filter with date and payroll group.
 *	Select Employee to show Biometric Transaction and Memo List.
+
+**DTR**
+*	Show employee duty hours within the payroll date
+*	Print Daily Time Record with each employee base on their attendance logs
+*	Show holidays and Vacation Leave
 	
 **Time Log**
+*	Generate time for every employee who is under that payroll group
 *	This module is to generate the employee attendance within designated payroll date.
 *	Show Employee no. of hrs duty per day from cut-off date to payroll day.
 	
@@ -115,6 +125,8 @@ Here are some features of the system
 			
 **Overtime Pay**
 *	This module is to display employee with overtime within the payroll cut-off. It also have the option to approve overtime or not.
+*	Only employee with excess hrs from their generate time shows
+*	The list is only within payroll period.
 	
 **Generate 13th Months**
 *	This module is to generate employee 13th month pay.
@@ -123,7 +135,23 @@ Here are some features of the system
 		*	13th Month Pay will automatic register to employee payroll account within payroll date.
 			
 **Load Attendance**
-*	This module is to import attendance from Wall Biometric to system with confirmation. 
+*	This module is to import attendance from Wall Biometric to system with confirmation.
+*	Tested and working library is a wall biometric from ZKTeco brand
+*	IMPORT
+		*	This will get the attendance from biometric to System.
+		*	Date range of this is FROM (your selected date) to current date.
+*	Confirm
+		*	Confirm button will put all attendance downloaded to Time Log for generation
+*	New Attendance 
+		*	You can create manual encoding of employees time log
+*	Delete Attendance
+		*	It will delete timelog of selected employee.
+*	Delete All Attendance
+		*	It will delete all displayed attendance that are not yet confirmed.
+*	Load Attendance
+	*	You can upload a csv file with your compiled attendance.
+ 		*	Format as “pin/name/date/time_in/break_out/break_in/break_out/break_in/time_out”
+     		*	Select your csv file and upload
 
 
 **Reports**
@@ -159,12 +187,12 @@ Here are some features of the system
 **User Management**
 *	Ecode/Edit user, so user can use system
 **User Access Rights**
-*	rant user such access for each modules
+*	Grant user such access for each modules
 **Payroll Utilities**
 *	Payroll Group
 	*	Encode/Edit Payroll cut-off for each employment status
 *	Swipe Memo
-	*	Add /Edit/Update Memo List including Penaty.
+	*	Add /Edit/Update Memo List including Penalty.
 *	Holidays
 	*	Encode/Remove Holidays
 	*	Holiday with past days cannot be deleted
