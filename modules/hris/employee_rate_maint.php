@@ -218,8 +218,8 @@ th     { background:#eee; }
                     </thead>
                 <?php
                 
-                $hist = $db->prepare("SELECT * FROM $db_hris.`master_journal` WHERE `change_to` >= :to AND `change_to` < :to1 AND `reference` NOT LIKE :estatus AND `reference` NOT LIKE :compute AND `reference` NOT LIKE :sched  AND `reference` NOT LIKE :birth AND `reference` NOT LIKE :bank AND `employee_no` = :eno order by `seq_no` DESC");
-                $hist->execute(array(":to" => 0, ":to1" => 10000, ":estatus" => "%Employment%", ":compute" => "%Compute%", ":sched" => "%Work Schedule%", ":birth" => "%Birth%", ":bank" => "%Bank%", ":eno" => $pin));
+                $hist = $db->prepare("SELECT * FROM $db_hris.`master_journal` WHERE (`reference` = :daily OR `reference` LIKE :inctv) AND `employee_no` = :eno ORDER BY `seq_no` DESC");
+                $hist->execute(array(":daily" => "Daily Rate", ":inctv" => "Incentive Cash", ":eno" => $pin));
                 while ($hist_data = $hist->fetch(PDO::FETCH_ASSOC)){
                     $ref=$hist_data['reference'];
                     $from=$hist_data['change_from'];

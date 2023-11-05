@@ -21,17 +21,17 @@ if (isset($_REQUEST["cmd"])) {
             switch ($_REQUEST["cmd"]) {
                 case "remove-attendee":
                     if (substr($access_rights, 4, 2) === "D+") {
-                    remove_attendee($_POST["df"], $_POST["dt"], $_POST["record"]);
+                      remove_attendee($_POST["df"], $_POST["dt"], $_POST["record"]);
                     }else{
-                    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
-                    return;
+                      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+                      return;
                     }
                     break;
                 case "add-attendee":
                     if (substr($access_rights, 0, 2) === "A+") {
-                    add_attendee($_POST["df"], $_POST["dt"], $_POST["name"]);
+                      add_attendee($_POST["df"], $_POST["dt"], $_POST["name"]);
                     }else{
-                    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+                      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
                     return;
                     }
                     break;
@@ -40,10 +40,10 @@ if (isset($_REQUEST["cmd"])) {
                     break;
                 case "plot":
                     if (substr($access_rights, 8, 2) === "P+") {
-                    $data = get_attendance($_POST["df"], $_POST["dt"]);
-                    echo json_encode(array("status" => "success", "records" => $data["records"], "columns" => $data["columns"]));
+                      $data = get_attendance($_POST["df"], $_POST["dt"]);
+                      echo json_encode(array("status" => "success", "records" => $data["records"], "columns" => $data["columns"]));
                     }else{
-                    echo json_encode(array("status" => "error", "message" => "No Access Rights"));
+                      echo json_encode(array("status" => "error", "message" => "No Access Rights"));
                     return;
                     }
                     break;
@@ -149,6 +149,8 @@ function get_attendance($datef, $datet, $option = "grid") {
           $hour = $min = 0;
           if ($attendance->rowCount()) {
             $get = false;
+            $break = get_time(array("recid" => $attendee_data["pin"], "df" => $dxf->format("Y-m-d"), "dt" => $dxf->format("Y-m-d")));
+            $record["break"] = $break["break"];
             while ($attendance_data = $attendance->fetch(PDO::FETCH_ASSOC)) {
               if ($get) {
                 $since = $time->diff(new DateTime($attendance_data["log_date"].' '.$attendance_data["log_time"]));
@@ -202,6 +204,7 @@ function get_column($count, $option = "grid") {
   $records[] = array("field" => "name", "caption" => "NAME", "size" => "220px");
   $records[] = array("field" => "day", "caption" => "DAY", "size" => "40px", "attr" => "align=center");
   $records[] = array("field" => "date", "caption" => "DATE", "size" => "95px", "attr" => "align=center");
+  $records[] = array("field" => "break", "caption" => "BREAK", "size" => "60px", "attr" => "align=center");
   $records[] = array("field" => "tot", "caption" => "TOTAL", "size" => "60px", "attr" => "align=center");
   $tcount = 0;
   $in = true;
@@ -226,4 +229,57 @@ function get_column($count, $option = "grid") {
     }
   }
   return $records;
+}
+
+function get_time($record) {
+  global $db, $db_hris;
+
+  $b = $db->prepare("SELECT `log_date`, `log_time`, `log_type` FROM $db_hris.`attendance_log` WHERE `pin` LIKE :pin AND CONCAT(`log_date`, ' ',`log_time`) >= :df AND `log_date`<=:dt ORDER BY CONCAT(`log_date`, ' ',`log_time`)");
+  $b->execute(array(":pin" => $record["recid"], ":df" => $record["df"], ":dt" => $record["dt"]));
+  if ($b->rowCount()) {
+    $type = $cnt = $start = $credit = $break = $coffee = 0;
+    while ($data = $b->fetch(PDO::FETCH_ASSOC)) {
+      if ($cnt++) {
+        $end = substr($data["log_date"]." ".$data["log_time"], 11, 2) * 60 + substr($data["log_date"]." ".$data["log_time"], 14, 2);
+        $time = number_format($end - $start, 0, '.', '');
+        switch (number_format($type, 0, '.', '')) {
+          case number_format(2, 0):
+            //break
+            $break += $time;
+            break;
+          case number_format(3, 0):
+            //coffee
+            $coffee += $time;
+            break;
+          default :
+            $credit += $time;
+        }
+        $start = $end;
+      } else {
+        $start = substr($data["log_date"]." ".$data["log_time"], 11, 2) * 60 + substr($data["log_date"]." ".$data["log_time"], 14, 2);
+      }
+      $type = $data["log_type"];
+    }
+    if (number_format($credit, 0, '.', '') !== number_format(0, 0)) {
+      $time = number_format($credit, 0, '.', '');
+      $d = new DateTime(date("m/d/Y"));
+      $d->modify("+$time minutes");
+      $credit = $d->format("H:i");
+    }
+    if (number_format($break, 0, '.', '') !== number_format(0, 0)) {
+      $time = number_format($break, 0, '.', '');
+      $d = new DateTime(date("m/d/Y"));
+      $d->modify("+$time minutes");
+      $break = $d->format("H:i");
+    }else{
+      $break = "00:00";
+    }
+    if (number_format($coffee, 0, '.', '') !== number_format(0, 0)) {
+      $time = number_format($coffee, 0, '.', '');
+      $d = new DateTime(date("m/d/Y"));
+      $d->modify("+$time minutes");
+      $coffee = $d->format("H:i");
+    }
+  }
+  return array("credit" => $credit, "break" => $break, "coffee" => $coffee);
 }

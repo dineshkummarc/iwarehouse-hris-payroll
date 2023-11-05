@@ -82,8 +82,9 @@ function check_user($record){
 		$check_pass->execute(array(":pwd" => md5($record['pass'])));
 		if($check_pass->rowCount()){
 			$check_pass_data = $check_pass->fetch(PDO::FETCH_ASSOC);
-            $current_date = date('Y-m-d');
-            $cfn->post_shift($current_date);
+            $system_date = $cfn->sysconfig("trans date");
+            $current_date = date("Y-m-d");
+            $cfn->post_shift($system_date);
             update_time($current_date);
 			sign_in($check_user_data['user_id'],$check_pass_data['user_password']);
 		}else{
@@ -170,7 +171,7 @@ function get_default(){
                             </div>
                             <div class="w3-hide" action="" method="post" id="reg_form" autocomplete="off">
                                 <p>
-                                    <label class="w3-label w3-small w3-text-orange>Make Username</label>
+                                    <label class="w3-label w3-small w3-text-orange">Make Username</label>
                                     <input class="w3-input w3-small w3-border-0 w3-border-bottom w3-hover-border-0 w3-transparent" id="make_uid" name="make_uid" type="text" autocomplete="off" required=""/>
                                 </p>
                                 <p>

@@ -852,12 +852,12 @@ function get_holiday_records(){
             $records[] = $record;
         }
     }
-    echo json_encode(array("status" => "success", "prev_records" => $prev_records, "records" => $records, "columns" => get_hol_columns(), "prev_colgroups" => get_hol_colgroup($year), "colgroups" => get_hol_colgroup($prev_year), "copy" => $holiday->rowCount() ? 0 : 1));
+    echo json_encode(array("status" => "success", "prev_records" => $prev_records, "records" => $records, "columns" => get_hol_columns(), "prev_colgroups" => get_hol_colgroup($prev_year), "colgroups" => get_hol_colgroup($year), "copy" => $holiday->rowCount() ? 0 : 1));
 }
 
 function get_hol_colgroup($year){
     $items = array();
-    if($year === date('Y')){
+    if($year == date('Y')){
         $items[] = array("span" => 4, "caption" => "<b>Current Year Holiday's</b>");
     }else{
         $items[] = array("span" => 4, "caption" => "<b>Previous Year Holiday's</b>");

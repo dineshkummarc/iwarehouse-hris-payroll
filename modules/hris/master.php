@@ -259,7 +259,7 @@ function shift_schedule(emp_no){
 }
 
 function vacation_leave(emp_no){
-    var level = '<?php echo $level = $cfn->get_user_level(); ?>';
+    var level = '<?php echo $cfn->get_user_level(); ?>';
     if(level >= 10){
         var div = $('#main');
         w2utils.lock(div, 'Please wait..', true);

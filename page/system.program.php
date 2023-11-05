@@ -192,8 +192,8 @@ function saveProgram($record, $parentData) {
     global $db, $db_hris;
 
     $active = $record["enable"] ? 1 : 0;
-    $save_config = $db->prepare("INSERT INTO $db_hris.`_program` SET `program_parent_no`=:pno, `menu_name`=:menu_name, `program_name`=:pclass, `program_level`=:plvl, `is_active`=:actv, `page`=:page, `seq`=:seq");
-    $save_config->execute(array(":pno" => $parentData["parent_no"], ":menu_name" => $record["menu_name"], ":pclass" => $record["prog_name"], ":plvl" => $record["plevel"]["id"], ":actv" => $active, ":page" => $record["functions"], ":seq" => $record["seq"]));
+    $save_config = $db->prepare("INSERT INTO $db_hris.`_program` SET `program_parent_no`=:pno, `menu_name`=:menu_name, `program_name`=:pclass, `program_level`=:plvl, `is_active`=:actv, `page`=:page, `seq`=:seq, `function`=:src");
+    $save_config->execute(array(":pno" => $parentData["parent_no"], ":menu_name" => $record["menu_name"], ":pclass" => $record["prog_name"], ":plvl" => $record["plevel"]["id"], ":actv" => $active, ":page" => $record["functions"], ":seq" => $record["seq"], ":src" => $record["source"]));
     return $save_config->rowCount();
 }
 

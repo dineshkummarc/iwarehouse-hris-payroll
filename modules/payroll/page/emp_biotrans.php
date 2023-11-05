@@ -428,22 +428,24 @@ function make_swipe_memo($record){
                             return;
                         }
                     }else{
-                        if($swipe_data["is_update_time"] == 2){
-                            $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
-                            $master->execute(array(':pin' => $record["pin"]));
-                            if ($master->rowCount()) {
-                                $master_data = $master->fetch(PDO::FETCH_ASSOC);
+                        $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
+                        $master->execute(array(':pin' => $record["pin"]));
+                        if ($master->rowCount()) {
+                            $master_data = $master->fetch(PDO::FETCH_ASSOC);
+                            if($swipe_data['is_update_time'] === 1){
+                                $ok = update_emp_time(array("emp_no" => $master_data['employee_no'],"trans_date" => $record["trans_date"], "time" => 480));
+                            }elseif($swipe_data['is_update_time'] === 2){
                                 $ok = update_emp_time(array("emp_no" => $master_data['employee_no'],"trans_date" => $record["trans_date"], "time" => 240));
-                                if($ok){
-                                    echo json_encode(array("status" => "success", "record" => $record, "ok" => $ok));
-                                }else{
-                                    echo json_encode(array("status" => "error", "message" => "Error updating time!", "ok" => $ok));
-                                    return;
-                                }
+                            }    
+                            if($ok){
+                                echo json_encode(array("status" => "success", "record" => $record, "ok" => $ok));
                             }else{
-                                echo json_encode(array("status" => "error", "message" => "Error! Employee pin not found!!", "record" => $record, "master" => $master->errorInfo(), "name" => $_SESSION["name"]));
+                                echo json_encode(array("status" => "error", "message" => "Error updating time!", "ok" => $ok));
                                 return;
                             }
+                        }else{
+                            echo json_encode(array("status" => "error", "message" => "Error! Employee pin not found!!", "record" => $record, "master" => $master->errorInfo(), "name" => $_SESSION["name"]));
+                            return;
                         }
                     }
                 }else{
@@ -487,69 +489,66 @@ function make_penalty($record){
     $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
     $master->execute(array(':pin' => $record["pin"]));
     if ($master->rowCount()) {
-        while ($master_data = $master->fetch(PDO::FETCH_ASSOC)) {
-            $emp_deductions = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:emp_no");
-            $emp_deductions->execute(array(":ded_no" => $record["penalty_to"], ":emp_no" => $master_data['employee_no']));
-            if ($emp_deductions->rowCount()){
-                if($record["penalty_amt"] > 0){
-                    $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_amount`=`deduction_amount`+:ded_amt, `deduction_balance`=`deduction_balance`+:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:emp_no AND `deduction_no`=:ded_no");
-                    $update_ded->execute(array(":emp_no" => $master_data['employee_no'], ":ded_amt" => $record["penalty_amt"], ":ded_bal" => $record["penalty_amt"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
+        $master_data = $master->fetch(PDO::FETCH_ASSOC);
+        $emp_deductions = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:emp_no");
+        $emp_deductions->execute(array(":ded_no" => $record["penalty_to"], ":emp_no" => $master_data['employee_no']));
+        if ($emp_deductions->rowCount()){
+            if($record["penalty_amt"] > 0){
+                $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_amount`=`deduction_amount`+:ded_amt, `deduction_balance`=`deduction_balance`+:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:emp_no AND `deduction_no`=:ded_no");
+                $update_ded->execute(array(":emp_no" => $master_data['employee_no'], ":ded_amt" => $record["penalty_amt"], ":ded_bal" => $record["penalty_amt"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
+            }
+            $ledger = insert_ledger(array("pin" => $master_data["pin"], "swipe_memo_code" => $record["swipe_memo_code"], "trans_date" => $record["trans_date"], "penalty_amt" => $record["penalty_amt"], "penalty_to" => $record["penalty_to"], "option" => 2));
+            if($ledger){
+                $time = $db->prepare("SELECT * FROM $db_hris.`swipe_memo_code` WHERE `swipe_memo_code`=:code");
+                $time->execute(array(":code" => $record["swipe_memo_code"]));
+                if ($master->rowCount()) {
+                    $time_data = $time->fetch(PDO::FETCH_ASSOC);
+                        if($time_data['is_update_time'] === 1){
+                            $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => 480));
+                        }else{
+                            if($time_data['is_update_time'] === 2){
+                                $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => 240));
+                            }
+                        }
+                        if($ok){
+                            $data = 1;
+                        }else{
+                            $data = $ok;
+                        }
+                }else{
+                    $data = array("status" => "error", "message" => "Employee Pin not found!", "e" => $master->errorInfo());
                 }
+            }else{
+                $data = array("status" => "error", "message" => "Error updating the Employee deduction ledger!");
+            }
+        }else{
+            $new_ded = $db->prepare("INSERT INTO $db_hris.`employee_deduction`(`employee_no`, `deduction_no`, `deduction_amount`, `deduction_balance`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :ded_amt, :ded_bal, :uid, :ip)");
+            $new_ded->execute(array(":emp_no" => $master_data['employee_no'], ":ded_amt" => $record["penalty_amt"], ":ded_bal" => $record["penalty_amt"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
+            if($new_ded->rowCount()){
                 $ledger = insert_ledger(array("pin" => $master_data["pin"], "swipe_memo_code" => $record["swipe_memo_code"], "trans_date" => $record["trans_date"], "penalty_amt" => $record["penalty_amt"], "penalty_to" => $record["penalty_to"], "option" => 2));
                 if($ledger){
                     $time = $db->prepare("SELECT * FROM $db_hris.`swipe_memo_code` WHERE `swipe_memo_code`=:code");
                     $time->execute(array(":code" => $record["swipe_memo_code"]));
                     if ($master->rowCount()) {
                         $time_data = $time->fetch(PDO::FETCH_ASSOC);
-                        $credit_time = 0;
                         if($time_data['is_update_time'] === 1){
-                            $credit_time += 480;
-                        }elseif($time_data['is_update_time'] === 2){
-                            $credit_time += 240;
+                            $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => 480));
+                        }else{
+                            if($time_data['is_update_time'] === 2){
+                                $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => 240));
+                            }
                         }
-                        $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => $credit_time));
                         if($ok){
                             $data = 1;
                         }else{
                             $data = $ok;
                         }
-                    }else{
-                        $data = array("status" => "error", "message" => "Employee Pin not found!", "e" => $master->errorInfo());
                     }
                 }else{
-                    $data = array("status" => "error", "message" => "Error updating the Employee deduction ledger!");
+                    $data = array("status" => "error", "message" => "Employee Pin not found!", "e" => $master->errorInfo());
                 }
             }else{
-                $new_ded = $db->prepare("INSERT INTO $db_hris.`employee_deduction`(`employee_no`, `deduction_no`, `deduction_amount`, `deduction_balance`, `user_id`, `station_id`) VALUES (:emp_no, :ded_no, :ded_amt, :ded_bal, :uid, :ip)");
-                $new_ded->execute(array(":emp_no" => $master_data['employee_no'], ":ded_amt" => $record["penalty_amt"], ":ded_bal" => $record["penalty_amt"], ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
-                if($new_ded->rowCount()){
-                    $ledger = insert_ledger(array("pin" => $master_data["pin"], "swipe_memo_code" => $record["swipe_memo_code"], "trans_date" => $record["trans_date"], "penalty_amt" => $record["penalty_amt"], "penalty_to" => $record["penalty_to"], "option" => 2));
-                    if($ledger){
-                        $time = $db->prepare("SELECT * FROM $db_hris.`swipe_memo_code` WHERE `swipe_memo_code`=:code");
-                        $time->execute(array(":code" => $record["swipe_memo_code"]));
-                        if ($master->rowCount()) {
-                            $time_data = $time->fetch(PDO::FETCH_ASSOC);
-                            $credit_time = 0;
-                            if($time_data['is_update_time'] === 1){
-                                $credit_time += 480;
-                            }elseif($time_data['is_update_time'] === 2){
-                                $credit_time += 240;
-                            }
-                            $ok = update_emp_time(array("emp_no" => $master_data['employee_no'], "trans_date" => $record["trans_date"] ,"time" => $credit_time));
-                            if($ok){
-                                $data = 1;
-                            }else{
-                                $data = $ok;
-                            }
-                        }else{
-                            $data = array("status" => "error", "message" => "Employee Pin not found!", "e" => $master->errorInfo());
-                        }
-                    }else{
-                        $data = array("status" => "error", "message" => "Error updating the Employee deduction ledger!");
-                    }
-                }else{
-                    $data = array("status" => "error", "message" => "Error updating the Employee deduction!");
-                }
+                $data = array("status" => "error", "message" => "Error updating the Employee deduction ledger!");
             }
         }
     }
@@ -562,27 +561,26 @@ function cancel_penalty($record){
     $master = $db->prepare("SELECT * FROM $db_hris.`master_data` WHERE `pin`=:pin");
     $master->execute(array(':pin' => $record["pin"]));
     if ($master->rowCount()) {
-        while ($master_data = $master->fetch(PDO::FETCH_ASSOC)) {
-            $emp_deductions = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:emp_no");
-            $emp_deductions->execute(array(":ded_no" => $record["penalty_to"], ":emp_no" => $master_data['employee_no']));
-            if($record["penalty_to"] > 0){
-                if ($emp_deductions->rowCount()){
-                    if($record["penalty_amt"] > 0){
-                        $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_amount`=`deduction_amount`-:ded_amt, `deduction_balance`=`deduction_balance`-:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:emp_no AND `deduction_no`=:ded_no");
-                        $update_ded->execute(array(":emp_no" =>$master_data['employee_no'], ":ded_amt" => number_format($record["penalty_amt"],2), ":ded_bal" => number_format($record["penalty_amt"],2), ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
-                    }
-                    $ok = insert_ledger(array("pin" => $record["pin"], "swipe_memo_code" => $record["swipe_memo_code"], "trans_date" => $record["trans_date"], "penalty_amt" => $record["penalty_amt"], "penalty_to" => $record["penalty_to"], "option" => 1));
-                    if($ok){
-                        $data = 1;
-                    }else{
-                        $data = $ok;
-                    }
+        $master_data = $master->fetch(PDO::FETCH_ASSOC);
+        $emp_deductions = $db->prepare("SELECT * FROM $db_hris.`employee_deduction` WHERE `deduction_no`=:ded_no AND `employee_no`=:emp_no");
+        $emp_deductions->execute(array(":ded_no" => $record["penalty_to"], ":emp_no" => $master_data['employee_no']));
+        if($record["penalty_to"] > 0){
+            if ($emp_deductions->rowCount()){
+                if($record["penalty_amt"] > 0){
+                    $update_ded = $db->prepare("UPDATE $db_hris.`employee_deduction` SET `deduction_amount`=`deduction_amount`-:ded_amt, `deduction_balance`=`deduction_balance`-:ded_bal, `user_id`=:uid, `station_id`=:ip WHERE `employee_no`=:emp_no AND `deduction_no`=:ded_no");
+                    $update_ded->execute(array(":emp_no" =>$master_data['employee_no'], ":ded_amt" => number_format($record["penalty_amt"],2), ":ded_bal" => number_format($record["penalty_amt"],2), ":uid" => $_SESSION['name'], ":ip" => $_SERVER['REMOTE_ADDR'], ":ded_no" => $record["penalty_to"]));
+                }
+                $ok = insert_ledger(array("pin" => $record["pin"], "swipe_memo_code" => $record["swipe_memo_code"], "trans_date" => $record["trans_date"], "penalty_amt" => $record["penalty_amt"], "penalty_to" => $record["penalty_to"], "option" => 1));
+                if($ok){
+                    $data = 1;
                 }else{
-                    $data = array("status" => "error", "message" => "Error updating the Employee deduction!");
+                    $data = $ok;
                 }
             }else{
-                $data = 1;
+                $data = array("status" => "error", "message" => "Error updating the Employee deduction!");
             }
+        }else{
+            $data = 1;
         }
     }
     return $data;

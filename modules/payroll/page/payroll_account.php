@@ -781,8 +781,8 @@ function post_payroll($record){
             }else{
               $data = array("status" => "error", "message" => "Error Posting Payroll Time!");
             }
-            $pay_trans = $db->prepare("UPDATE $db_hris.`payroll_trans` SET `is_posted`=:isPosted, `posted_by`=:uid, `posted_at`=:station, `posted_time`=:posted_date  WHERE `payroll_date`=:pay_date AND `employee_no`=:emp_no");
-            $pay_trans->execute(array(":isPosted" => 1, ":uid" => $_SESSION["name"], ":station" => $_SERVER["REMOTE_ADDR"], ":posted_date" => date("Y-m-d H:i:s"), ":pay_date" => $payroll_date, ":emp_no" => $master_data["employee_no"]));
+            $pay_trans = $db->prepare("UPDATE $db_hris.`payroll_trans` SET `is_posted`=:isPosted, `posted_by`=:uid, `posted_at`=:station, `posted_time`=:posted_date, `bank_account`=:bank_acc  WHERE `payroll_date`=:pay_date AND `employee_no`=:emp_no");
+            $pay_trans->execute(array(":isPosted" => 1, ":uid" => $_SESSION["name"], ":station" => $_SERVER["REMOTE_ADDR"], ":posted_date" => date("Y-m-d H:i:s"), ":pay_date" => $payroll_date, ":emp_no" => $master_data["employee_no"], ":bank_acc" => $master_data["bank_account"]));
             if($pay_trans->rowCount()){
               $some_update++;
             }
@@ -920,49 +920,45 @@ function post_deduction($employee_no, $payroll_date) {
 function post_payroll_pay($employee_no, $payroll_date, $schedule) {
   global $db, $db_hris;
 
-  try {
-    $payroll_trans_pay = $db->prepare("SELECT * FROM $db_hris.`payroll_trans_pay`, $db_hris.`payroll_type` WHERE `payroll_trans_pay`.`payroll_type_no`=`payroll_type`.`payroll_type_no` AND `employee_no`=:emp_no AND `payroll_trans_pay`.`payroll_date`=:pay_date");
-    $grosspay_sss = $grosspay_tax = $grosspay_pagibig = $grosspay_phil = $vl_days = 0;
-    $payroll_trans_pay->execute(array(":emp_no" => $employee_no, ":pay_date" => $payroll_date));
-    if ($payroll_trans_pay->rowCount()) {
-      while ($payroll_trans_pay_data = $payroll_trans_pay->fetch(PDO::FETCH_ASSOC)) {
-        $deduction = $db->prepare("SELECT * FROM $db_hris.`deduction` WHERE `is_computed`");
-        if ($deduction->rowCount()) {
-          while ($deduction_data = $deduction->fetch(PDO::FETCH_ASSOC)) {
-            if (number_format($deduction_data["deduction_no"], 0) == number_format(7, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
-              $grosspay_sss+=$payroll_trans_pay_data["pay_amount"];
+  $grosspay_sss=$grosspay_tax=$grosspay_pagibig=$grosspay_phil=$vl_days=0;
+  $payroll_trans_pay = $db->prepare("SELECT * FROM $db_hris.`payroll_trans_pay`, $db_hris.`payroll_type` WHERE `payroll_trans_pay`.`payroll_type_no`=`payroll_type`.`payroll_type_no` AND `employee_no`=:emp_no AND `payroll_trans_pay`.`payroll_date`=:pay_date");
+  $payroll_trans_pay->execute(array(":emp_no" => $employee_no, ":pay_date" => $payroll_date));
+  if ($payroll_trans_pay->rowCount()) {
+    while ($payroll_trans_pay_data = $payroll_trans_pay->fetch(PDO::FETCH_ASSOC)) {
+      $deduction = $db->prepare("SELECT * FROM $db_hris.`deduction` WHERE `is_computed`");
+      $deduction->execute();
+      if ($deduction->rowCount()) {
+        while ($deduction_data = $deduction->fetch(PDO::FETCH_ASSOC)) {
+          if (number_format($deduction_data["deduction_no"], 0) == number_format(7, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
+            $grosspay_sss+=$payroll_trans_pay_data["pay_amount"];
+          }
+          if (number_format($deduction_data["deduction_no"], 0) == number_format(107, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
+            if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
+              $grosspay_pagibig+=$payroll_trans_pay_data["pay_amount"];
             }
-            if (number_format($deduction_data["deduction_no"], 0) == number_format(107, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
-              if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
-                $grosspay_pagibig+=$payroll_trans_pay_data["pay_amount"];
-              }
+          }
+          if (number_format($deduction_data["deduction_no"], 0) == number_format(207, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
+            if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
+              $grosspay_phil+=$payroll_trans_pay_data["pay_amount"];
             }
-            if (number_format($deduction_data["deduction_no"], 0) == number_format(207, 0) AND $payroll_trans_pay_data["is_subject_to_sss"]) {
-              if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
-                $grosspay_phil+=$payroll_trans_pay_data["pay_amount"];
-              }
-            }
-            if (number_format($deduction_data["deduction_no"], 0) == number_format(307, 0) AND $payroll_trans_pay_data["is_subject_to_tax"]) {
-              if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
-                $grosspay_tax+=$payroll_trans_pay_data["pay_amount"];
-              }
+          }
+          if (number_format($deduction_data["deduction_no"], 0) == number_format(307, 0) AND $payroll_trans_pay_data["is_subject_to_tax"]) {
+            if (!(substr($deduction_data["schedule"], 0, 1) == $schedule OR substr($deduction_data["schedule"], -1) == $schedule)) {
+              $grosspay_tax+=$payroll_trans_pay_data["pay_amount"];
             }
           }
         }
-        if (number_format($payroll_trans_pay_data["payroll_type_no"], 0) == number_format(507, 0)) {
-          $vl_days+=$payroll_trans_pay_data["credit"] / 8;
-        }
+      }
+      if (number_format($payroll_trans_pay_data["payroll_type_no"], 0) == number_format(507, 0)) {
+        $vl_days+=$payroll_trans_pay_data["credit"] / 8;
       }
     }
-    $emp_todate = $db->prepare("UPDATE $db_hris.`employee_todate` SET `grosspay_sss`=:sss, `grosspay_tax`=:tax, `grosspay_pagibig`=:love, `grosspay_phil`=:phil, `vl_days`=`vl_days`+:vl WHERE `employee_no`=:emp_no");
-    $emp_todate->execute(array(":sss" => $grosspay_sss, ":tax" => $grosspay_tax, ":love" => $grosspay_pagibig, ":phil" => $grosspay_phil, ":vl" => $vl_days, ":emp_no" => $employee_no));
-    if($emp_todate->rowCount()){
-      return true;
-    }else{
-      return $emp_todate->errorInfo();
-    }
-  } catch (PDOException $e) {
-    // Handle database errors
-    return "Database Error: " . $e->getMessage();
-}
+  }
+  $emp_todate = $db->prepare("UPDATE $db_hris.`employee_todate` SET `grosspay_sss`=:sss, `grosspay_tax`=:tax, `grosspay_pagibig`=:love, `grosspay_phil`=:phil, `vl_days`=`vl_days`+:vl WHERE `employee_no`=:emp_no");
+  $emp_todate->execute(array(":sss" => $grosspay_sss, ":tax" => $grosspay_tax, ":love" => $grosspay_pagibig, ":phil" => $grosspay_phil, ":vl" => $vl_days, ":emp_no" => $employee_no));
+  if($emp_todate->rowCount()){
+    return true;
+  }else{
+    return $emp_todate->errorInfo();
+  }
 }

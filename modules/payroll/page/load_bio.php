@@ -133,35 +133,29 @@ function get_wall_bio($fdate){
     $zk = new ZKLibrary($ip, 4370);
     $zk->connect();
     $zk->disableDevice();
-    if($zk->connect()){
-        $att_log = $zk->getAttendance();
-        foreach ($att_log as $key => $data){
-            $pin = $data[1];
-            $date = (new DateTime($data[3]))->format("Y-m-d");
-            $time = (new DateTime($data[3]))->format("H:i:s");
-            $ver = '1';
-            $status = $data[2];
-            if($date >= $ndate){
-                $time_check = $db->prepare("SELECT * FROM $db_hris.`_tmp_imported_att` WHERE `Date`=:date and `_time`=:time and `pin`=:pin");
-                $time_check->execute(array(":date" => $date, ":time" => $time, ":pin" => $pin));
-                if($time_check->rowCount()){
-                    $update = $db->prepare("UPDATE $db_hris.`_tmp_imported_att` SET `Status`=:status, `Date`=:date, `_time`=:time, Verified=:ver WHERE pin=:pin");
-                    $update->execute(array(":status" => $status, ":date" => $date, ":time" => $time, ":ver" => $ver, ":pin" => $pin));
-                }else{
-                    $update = $db->prepare("INSERT INTO $db_hris.`_tmp_imported_att` (`pin`, `Date`, `_time`, `Verified`, `Status`, `get_by`) VALUES (:pin, :date, :time, :ver, :status, :uid)");
-                    $update->execute(array(":pin" => $pin, ":date" => $date, ":time" => $time, ":ver" => $ver, ":status" => $status, ":uid" => $_SESSION["name"]));
-                }
+    $att_log = $zk->getAttendance();
+    foreach ($att_log as $key => $data){
+        $pin = $data[1];
+        $date = (new DateTime($data[3]))->format("Y-m-d");
+        $time = (new DateTime($data[3]))->format("H:i:s");
+        $ver = '1';
+        $status = $data[2];
+        if($date >= $ndate){
+            $time_check = $db->prepare("SELECT * FROM $db_hris.`_tmp_imported_att` WHERE `Date`=:date and `_time`=:time and `pin`=:pin");
+            $time_check->execute(array(":date" => $date, ":time" => $time, ":pin" => $pin));
+            if($time_check->rowCount()){
+                $update = $db->prepare("UPDATE $db_hris.`_tmp_imported_att` SET `Status`=:status, `Date`=:date, `_time`=:time, Verified=:ver WHERE pin=:pin");
+                $update->execute(array(":status" => $status, ":date" => $date, ":time" => $time, ":ver" => $ver, ":pin" => $pin));
+            }else{
+                $update = $db->prepare("INSERT INTO $db_hris.`_tmp_imported_att` (`pin`, `Date`, `_time`, `Verified`, `Status`, `get_by`) VALUES (:pin, :date, :time, :ver, :status, :uid)");
+                $update->execute(array(":pin" => $pin, ":date" => $date, ":time" => $time, ":ver" => $ver, ":status" => $status, ":uid" => $_SESSION["name"]));
             }
         }
-        $zk->clearAttendance();
-        $zk->enableDevice();
-        $zk->disconnect();
-        echo json_encode(array("status" => "success", "ip" => $ip));
-    }else{
-        $zk->enableDevice();
-        $zk->disconnect();
-        echo json_encode(array("status" => "error", "message" => "Error connecting in biometric $ip"));
     }
+    $zk->clearAttendance();
+    $zk->enableDevice();
+    $zk->disconnect();
+    echo json_encode(array("status" => "success", "ip" => $ip, "message" => "Wall Biometric Attendance Imported", "e" => "Error connecting in biometric $ip"));
 }
 
 function sysconfig($config_name) {

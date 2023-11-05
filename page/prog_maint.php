@@ -79,6 +79,7 @@ function new_program() {
                 { field: 'plevel', type: 'list', required: true, options: {items: levels} },
                 { field: 'parent', type: 'list', required: true, options: {items: parent} },
                 { field: 'functions', type: 'text', required: true },
+                { field: 'source', type: 'text', required: true },
                 { field: 'seq', type: 'text', required: true }
             ],
             actions: {
