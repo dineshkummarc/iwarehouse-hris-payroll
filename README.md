@@ -201,7 +201,7 @@ Here are some features of the system
 
 ***NOTE: SQL FILE NOT INCLUDED!!***
 </br>
-***FOR MORE INFORMATION ABOUT THIS SYSTEM KINDLY DM ME @ judithekuletz.ja@gmail.com***
+***FOR MORE INFORMATION ABOUT THIS SYSTEM KINDLY DM ME @ judi.arevalo17@gmail.com***
 
 
 HAPPY CODING
