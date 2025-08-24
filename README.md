@@ -14,7 +14,6 @@ This system is a web-based program that can be used by any firm to manage the re
 *	Reduced manual work.
 *	Timely Report generation. 
 
-
 The main objective of this system is to reduce the effort of office to keep the daily events such as payroll, employee performance, employee attendance and employee's details.
  
 Here are some features of the system
@@ -30,15 +29,12 @@ Here are some features of the system
 *	Top 10 Late of the current month
 *	Top 10 Absentee of the current month
 
-
-
 **HRIS Features**
 
 **Work Force**
 *	This module provides a consolidated database for application tracking, compensation and benefit option, and more. It’s also the central location for all of your personnel data, including the most up-to-date statistics on your organization’s hiring and retention patterns.
 		
 **Functions/Buttons**
-
 
 **All & None-Delete**
 *	All – Shows all employee including inactive employee
@@ -62,8 +58,6 @@ Here are some features of the system
 **Changes**
 *	Shows changes of record of such employee or Journal records
 
-
-
 **Shift Schedule**
 *	Shows all available Shift Schedule
 *	Encode & Update Shift’s Schedule*
@@ -76,8 +70,6 @@ Here are some features of the system
 **Store Maintenance**
 *	Shows all Store/Branch
 *	Encode & Update Store/Branch
-
-
 
 **Payroll System Features**
 
@@ -152,8 +144,6 @@ Here are some features of the system
 	*	You can upload a csv file with your compiled attendance.
  		*	Format as “pin/name/date/time_in/break_out/break_in/break_out/break_in/time_out”
      		*	Select your csv file and upload
-
-
 **Reports**
 
 **Payroll Summary**
@@ -170,7 +160,6 @@ Here are some features of the system
 *	Plotting employee  who is absent within the date range and shows employee name and total Late.
 	*	Click the employee name to view more details.
 
-
 **SSS Reports**
 *	Generate SSS Reports
 
@@ -179,8 +168,6 @@ Here are some features of the system
 
 **Pag-Ibig Report**
 *	Generate Pag-Ibig Reports
-
-
 
 **System Utilities**
 
